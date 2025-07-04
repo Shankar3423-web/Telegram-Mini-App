@@ -192,8 +192,8 @@ export const ReferralProvider = ({ children }) => {
   /* last "_" split */
   // const [ , , referrerId ] = startParam.split(/_(?=[^_]+$)/);
         const parts = startParam.split('_');
-      const referrerId = parts[2];
-  console.log('[Referral] referrerId:', referrerId);
+        const referrerId = parts[2];
+        console.log('[Referral] referrerId:', referrerId);
 
   if (!referrerId || referrerId === String(referredId)) {
     console.log('[Referral] No referrerId OR self-referral → abort');
@@ -232,7 +232,7 @@ export const ReferralProvider = ({ children }) => {
       const code = btoa(`${user.id}_${Date.now()}`)
         .replace(/[^a-zA-Z0-9]/g, '')
         .substring(0, 12);
-      setInviteLink(`https://t.me/Web3TodayBetabot/Web3TodayBeta?startapp=ref_${code}_${user.id}`);
+      setInviteLink(`https://t.me/${process.env.BOT_USERNAME}/${process.env.BOT_NAME}?startapp=ref_${code}_${user.id}`);
     }
   }, [user?.id]);
   
