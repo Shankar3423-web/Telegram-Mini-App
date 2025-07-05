@@ -1,17 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const WelcomePopup = () => {
-  const [isOpen, setIsOpen] = useState(true);
-
-  const closePopup = () => {
-    setIsOpen(false);
-  };
-
-  if (!isOpen) return null;
-
+const WelcomePopup = ({ onClose }) => {
   return (
     <>
-      <style>{`
+      
+<style>{`
         .popup-overlay {
           position: fixed;
           inset: 0;
@@ -59,10 +52,9 @@ const WelcomePopup = () => {
           }
         }
       `}</style>
-
       <div className="popup-overlay">
         <div className="popup-container">
-          <button onClick={closePopup} className="close-button">×</button>
+          <button onClick={onClose} className="close-button">×</button>
           <h2>Welcome to Web3Today News</h2>
           <p>You got <span className="points-text">50 points</span> 🎉</p>
         </div>
@@ -72,3 +64,5 @@ const WelcomePopup = () => {
 };
 
 export default WelcomePopup;
+
+

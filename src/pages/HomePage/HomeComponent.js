@@ -511,10 +511,13 @@ import { Progress } from "../../components/ui/progress";
 import FarmingButton from "../FarmPage/FarmingButton.js";
 import  useFarming  from '../FarmPage/UseFarming.js';
 import { useStreak } from "../../reactContext/StreakTracker.js";
+import WelcomePopup from "../NetworkPage/WelcomePopup";
+import { useReferral } from "../../reactContext/ReferralContext";
 
 export default function HomeComponent() {
   const navigate = useNavigate();
   const { user, scores } = useTelegram();
+   const { showWelcomePopup, setShowWelcomePopup } = useReferral();
 
   const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
   const [isFarming, setIsFarming] = useState(false);
@@ -990,6 +993,9 @@ export default function HomeComponent() {
           </main>
         </div>
       </div>
+       {showWelcomePopup && (
+        <WelcomePopup onClose={() => setShowWelcomePopup(false)} />
+      )}
     </div>
   );
 }
