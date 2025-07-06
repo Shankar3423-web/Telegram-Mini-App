@@ -50,6 +50,7 @@ export const initializeUser = async (user) => {
     console.error("User data not available");
     return null;
   }
+  //!SECTION
 
   const userId = user?.id.toString();
   const userRef = ref(database, `users/${userId}`);
