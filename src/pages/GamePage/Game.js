@@ -52,13 +52,15 @@ const Game = ({ onGameOver, startGame }) => {
   //Mute state is initialized to false if not set in localStorage.
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("gameMuted") === "true");
 
-  // Poll localStorage every 500ms.
+  // Replace polling for mute state with storage event listener
   useEffect(() => {
-    const interval = setInterval(() => {
-      const storedMuted = localStorage.getItem("gameMuted") === "true";
-      setIsMuted(storedMuted);
-    }, 500);
-    return () => clearInterval(interval);
+    const handleStorage = (e) => {
+      if (e.key === "gameMuted") {
+        setIsMuted(e.newValue === "true");
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   // Other mutable refs for game state.
