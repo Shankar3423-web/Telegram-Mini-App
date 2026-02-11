@@ -9,7 +9,7 @@
 
 // const InviteModal = ({ isOpen, onClose}) => {
 //   const {user} = useTelegram()
-  
+
 //   const [inviteLink, setInviteLink] = useState("");
 //   const [hasReferred, setHasReferred] = useState(false);
 
@@ -17,12 +17,12 @@
 //     if (user?.id && !hasReferred) {
 //       handleReferral();
 //     }
-  
+
 //     generateInviteLink();
 //   }, [user?.id]);
-  
- 
- 
+
+
+
 
 //   const updateScoreReferrerDisplay = async (amount, refId) => {
 //     const scoreRef = ref(database, `users/${refId}/Score/network_score`);
@@ -49,13 +49,13 @@
 //     const referralRef = ref(database, `users/${referrerId}/referrals`);
 //     const snapshot = await get(referralRef);
 //     let referrals = snapshot.exists() ? snapshot.val() : {};
-  
+
 //     // Check if the referred ID already exists in the referrer's referral list
 //     if (Object.values(referrals).includes(referredId)) {
 //       console.log("Referral already exists. No points added.");
 //       return; // Stop execution if already referred
 //     }
-  
+
 
 //     // Award referral points only once
 //     const referrerScoreRef = ref(database, `users/${referrerId}/Score/network_score`);
@@ -63,20 +63,20 @@
 //     const referrerPoints = 100;
 
 //     await updateScoreReferrerDisplay(referrerPoints, referrerId);
-  
+
 //     // Award new user bonus points
 //     const newUserScoreRef = ref(database, `users/${referredId}/Score/network_score`);
 //     const newUserSnapshot = await get(newUserScoreRef);
 //     const newUserPoints = 50;
 //     await updateReferredScoreDisplay(newUserPoints, referredId);
-  
+
 //     // Update referral list
 //     let nextIndex = Object.keys(referrals).length + 1;
 //     await update(referralRef, { [nextIndex]: referredId });
-  
+
 //     console.log(`Referral recorded: ${referrerId} referred ${referredId}`);
 //   };
-  
+
 //   const handleReferral = async () => {
 //     if (hasReferred) return;
 //     const referralLink = tg.initDataUnsafe.start_param;
@@ -121,14 +121,14 @@
 
 
 //   };
-  
+
 //   const copyLink = () => {
 //     navigator.clipboard.writeText(inviteLink).then(() => {
 //       alert("Copied");
 //       tg.showPopup({ title: "Success", message: "Invite link copied!", buttons: [{ type: "ok" }] });
 //     });
 //   };
-  
+
 //   if (!isOpen) return null;
 
 //   return (
@@ -249,7 +249,7 @@ const InviteModal = ({ isOpen, onClose }) => {
         <div className="flex justify-center mb-6">
           <img
             id="qrCode"
-            src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://t.me/Web3today_bot"
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(inviteLink)}`}
             alt="QR Code"
             className="w-60 h-60 sm:w-64 sm:h-64"
           />

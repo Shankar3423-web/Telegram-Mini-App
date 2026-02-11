@@ -45,7 +45,7 @@
 //         onRestart={handleRestart}
 //       />
 
-      
+
 //     </div>
 //   );
 // }
@@ -71,18 +71,18 @@ function GameComponent() {
   const [gameKey, setGameKey] = useState(0); // used for remounting on restart
   const { user } = useTelegram();
 
-  
+
   const decreaseTicketCount = async (userId) => {
     if (!userId) return;
-  
+
     const ticketRef = ref(database, `users/${userId}/Score/no_of_tickets`);
-  
+
     try {
       const snapshot = await get(ticketRef);
-      
+
       if (snapshot.exists()) {
         let currentTickets = snapshot.val();
-        
+
         if (currentTickets > 0) {
           await update(ref(database, `users/${userId}/Score`), {
             no_of_tickets: currentTickets - 1,
@@ -102,7 +102,7 @@ function GameComponent() {
   const handleStartGame = () => {
     setGameStarted(true);
     setGameOver(false);
-    
+
 
     let userId = user.id
     decreaseTicketCount(userId)
@@ -116,17 +116,9 @@ function GameComponent() {
   };
 
   const handleRestart = () => {
-    setGameKey((prev) => prev + 1); 
+    setGameKey((prev) => prev + 1);
     setGameStarted(false);
     setGameOver(false);
-    const taskRef = ref(database, `connections/${user.id}/tasks/daily`);
-
-    try {
-       update(taskRef, { game: true }); // or set to false depending on logic
-      console.log("Game task updated in Firebase ✅");
-    } catch (error) {
-      console.error("Error updating game task in Firebase:", error);
-    }
   };
 
   // When the Back button is clicked, we set gameStarted to false.
@@ -151,7 +143,7 @@ function GameComponent() {
       />
 
     </div>
-    
+
   );
 }
 

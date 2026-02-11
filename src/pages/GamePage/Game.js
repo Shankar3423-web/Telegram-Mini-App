@@ -2,16 +2,18 @@ import React, { useRef, useEffect, useState } from "react";
 import { ref, get, update } from "firebase/database";
 import { database } from "../../services/FirebaseConfig";
 import { useTelegram } from "../../reactContext/TelegramContext.js";
-import {addHistoryLog} from "../../services/addHistory.js"
+import { addHistoryLog } from "../../services/addHistory.js";
+import { incrementTaskProgress } from "../../services/taskService";
 
 // Define updateGameScoresWrapper as a function declaration so it’s hoisted.
 async function updateGameScoresWrapper(currentGameScore, userId) {
-  
   const userRef = ref(database, `users/${userId}/Score`);
   try {
     const snapshot = await get(userRef);
     let updates = {};
-    const userData = snapshot.val();
+    const userData = snapshot.val() || {};
+
+    // 1. Update Game Scores & Total Score
     if (snapshot.exists()) {
       updates.game_score = (userData.game_score || 0) + currentGameScore;
       updates.total_score = (userData.total_score || 0) + currentGameScore;
@@ -23,20 +25,24 @@ async function updateGameScoresWrapper(currentGameScore, userId) {
       updates = {
         game_score: currentGameScore,
         game_highest_score: currentGameScore,
-        total_score:userData.total_score
+        total_score: (userData.total_score || 0) + currentGameScore
       };
     }
     await update(userRef, updates);
-    const textData ={
-            action: 'Game Points Added',
-            points: currentGameScore,
-            type: 'game',
-      }
-    
-    addHistoryLog(userId,textData)    
-    console.log("Scores updated successfully in Firebase.");
+
+    // 2. Mark "Game" Task as Completed/Progress in User Connections across all categories
+    await incrementTaskProgress(userId, "game", 1);
+
+    const textData = {
+      action: 'Game Points Added',
+      points: currentGameScore,
+      type: 'game',
+    };
+
+    addHistoryLog(userId, textData);
+    console.log("Scores and tasks updated successfully in Firebase.");
   } catch (error) {
-    console.error("Error updating scores in Firebase:", error);
+    console.error("Error updating scores/tasks in Firebase:", error);
   }
 }
 
@@ -339,7 +345,7 @@ const Game = ({ onGameOver, startGame }) => {
       bonusFruit.points = pointsMap[bonusFruit.emoji] || 1;
       fruitsRef.current.push(bonusFruit);
     }
-    
+
     // Create and display the countdown timer
     let timeLeft = 5;
     const timerElement = document.createElement("div");
@@ -356,18 +362,18 @@ const Game = ({ onGameOver, startGame }) => {
     timerElement.style.zIndex = "1000";
     timerElement.style.pointerEvents = "none";
     document.body.appendChild(timerElement);
-    
+
     // Update the timer every second
     const countdownInterval = setInterval(() => {
       timeLeft--;
       timerElement.textContent = `${timeLeft}`;
-      
+
       // Add a pulse animation effect
       timerElement.style.animation = "none";
       void timerElement.offsetWidth; // Trigger reflow
       timerElement.style.animation = "pulse 1s";
     }, 1000);
-    
+
     // After 5 seconds, remove bonus fruits, timer element, and resume normal spawn.
     setTimeout(() => {
       clearInterval(countdownInterval);

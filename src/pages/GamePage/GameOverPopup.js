@@ -6,7 +6,7 @@ import React from "react";
 
 const GameOverPopup = ({ show, finalScore, highScore, onRestart, onBack }) => {
   const navigate = useNavigate();
-  const {user} = useTelegram()
+  const { user } = useTelegram()
   if (!show) return null;
 
   let headerMsg = "";
@@ -44,28 +44,15 @@ const GameOverPopup = ({ show, finalScore, highScore, onRestart, onBack }) => {
       </p>
     );
   }
-  const handleTask = ()=>{
-    const taskRef = ref(database, `connections/${user.id}/tasks/daily`);
-
-    try {
-       update(taskRef, { game: true }); // or set to false depending on logic
-      console.log("Game task updated in Firebase ✅");
-    } catch (error) {
-      console.error("Error updating game task in Firebase:", error);
-    }
-  }
 
   return (
     <div id="game-over-popup" className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
       <button
         onClick={() => {
-          if (onBack){
+          if (onBack) {
             onBack();
-            handleTask();
           }
           navigate("/network");
-          
-          
         }}
         className="absolute top-4 left-4 px-4 py-2 text-white rounded bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-500 hover:opacity-90"
       >

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-import  useFarming  from './UseFarming';
+import useFarming from './UseFarming';
 
 
 import "../../Styles/FarmingComponent.css"
@@ -8,7 +8,7 @@ import "../../Styles/FarmingComponent.css"
 function FarmingButton() {
 
   const { farmingState, startFarming, claimPoints } = useFarming();
-  const seconds = farmingState.remainingTime
+
   function formatTime(seconds) {
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
@@ -18,7 +18,7 @@ function FarmingButton() {
 
 
   return (
-<div className="farming">
+    <div className="farming">
       <button id="farmingButton" className="farming-btn" onClick={() => {
         if (!farmingState.isFarming && !farmingState.canClaim) {
           startFarming();
@@ -27,7 +27,9 @@ function FarmingButton() {
         }
       }}>
         <span className="farming-btn-text">
-          {farmingState.isFarming ? `Farming... ${formatTime(farmingState.remainingTime)}` : farmingState.canClaim ? "Claim Points" : "Start Farming"}
+          {farmingState.isFarming ? (
+            <span>Farming... {formatTime(farmingState.remainingTime)}</span>
+          ) : farmingState.canClaim ? "Claim Points" : "Start Farming"}
         </span>
         {/* <span className="farming-btn-info">{farmingState.pointsEarned.toFixed(2)} points</span> */}
       </button>

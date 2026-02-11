@@ -198,13 +198,13 @@
 //             <div className="text-[10px] font-medium text-white"></div>
 //             <div className="flex items-center gap-1">
 //               <div className="w-4 h-2.5">
-                
+
 //               </div>
 //               <div className="w-3 h-3">
-               
+
 //               </div>
 //               <div className="w-3 h-3">
-                
+
 //               </div>
 //             </div>
 //           </div>
@@ -492,129 +492,113 @@ import { useTelegram } from "../../reactContext/TelegramContext.js";
 
 
 import {
-  ChevronRight,
-  Award,
+  Bell,
+  GamepadIcon,
+  ThumbsUp,
   Zap,
+  Award,
   Users,
   Wallet,
   CheckSquare,
-  Menu,
-  Bell,
-  GamepadIcon,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
 import { motion } from "framer-motion";
-import { Progress } from "../../components/ui/progress";
 import FarmingButton from "../FarmPage/FarmingButton.js";
-import  useFarming  from '../FarmPage/UseFarming.js';
+import useFarming from "../FarmPage/UseFarming.js";
 import { useStreak } from "../../reactContext/StreakTracker.js";
 import WelcomePopup from "../NetworkPage/WelcomePopup";
 import { useReferral } from "../../reactContext/ReferralContext";
+import { ref, onValue } from "firebase/database";
+import { database } from "../../services/FirebaseConfig";
 
 export default function HomeComponent() {
   const navigate = useNavigate();
   const { user, scores } = useTelegram();
-   const { showWelcomePopup, setShowWelcomePopup } = useReferral();
+  const { showWelcomePopup, setShowWelcomePopup } = useReferral();
+  const { farmingState } = useFarming();
 
-  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
-  const [isFarming, setIsFarming] = useState(false);
-  const [points, setPoints] = useState(120);
-  const [farmingProgress, setFarmingProgress] = useState(0);
-  // const { farmingState } = useFarming();
-  const { currentStreak, loadingStreak } = useStreak();
+  const { currentStreak } = useStreak();
 
-  // Mock news data
-  const newsItems = [
-    {
-      id: 1,
-      title: "TON Blockchain Adoption Surges Among Developers",
-      summary:
-        "The Open Network (TON) is seeing unprecedented growth in developer activity as more applications are being built on the blockchain.",
-      category: "Development",
-      imageUrl: "https://i.postimg.cc/sDzjfdS0/Ton-Image.jpg",
-      readTime: "4 min",
-    },
-    {
-      id: 2,
-      title: "Ethereum Layer 2 Solutions See Record Growth",
-      summary:
-        "Layer 2 scaling solutions on Ethereum have reached an all-time high in total value locked, with Arbitrum and Optimism leading the charge.",
-      category: "Blockchain",
-      imageUrl:
-        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/StockCake-Ethereum%27s%20Digital%20Glow_1742209026.jpg-5LEdYRUDNMmXP3kO8VQLYl4bo7nnTL.jpeg",
-      readTime: "3 min",
-    },
-    {
-      id: 3,
-      title: "New NFT Collection Raises $10M for Charity",
-      summary:
-        "A new NFT collection featuring digital art from renowned artists has raised over $10 million for environmental conservation efforts.",
-      category: "NFTs",
-      imageUrl: "https://i.postimg.cc/59XXZV1c/NFT-Image.jpg",
-      readTime: "2 min",
-    },
-    
-    {
-      id: 4,
-      title: "Bitcoin Mining Becomes More Sustainable",
-      summary:
-        "Major Bitcoin mining operations are transitioning to renewable energy sources, addressing environmental concerns about cryptocurrency mining.",
-      category: "Sustainability",
-      imageUrl: "https://i.postimg.cc/DyGXHThj/Bit-Coin-Image.jpg",
-      readTime: "5 min",
-    },
-    {
-      id: 5,
-      title: "DeFi Protocol Launches Cross-Chain Bridge",
-      summary:
-        "A popular DeFi protocol has launched a new cross-chain bridge allowing users to transfer assets between multiple blockchains with minimal fees.",
-      category: "DeFi",
-      imageUrl: "https://i.postimg.cc/kM0shCzG/Defi-Image.jpg",
-      readTime: "3 min",
-    },
-  ]
+  const [dailyTasksPreview, setDailyTasksPreview] = useState([]);
+  const [topNews, setTopNews] = useState(null);
 
-  // Simulate farming progress
+  // Fetch dynamic news for Top Story
   useEffect(() => {
-    if (isFarming) {
-      const interval = setInterval(() => {
-        setFarmingProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 0.4;
+    const newsRef = ref(database, "news");
+    const unsubscribe = onValue(newsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const newsArray = Object.entries(data).map(([id, item]) => ({
+          id,
+          ...item,
+        }));
+        // Sort by likes descending, then by createdAt descending
+        const sorted = newsArray.sort((a, b) => {
+          const likesA = a.likes || 0;
+          const likesB = b.likes || 0;
+          if (likesB !== likesA) return likesB - likesA;
+          return (b.createdAt || 0) - (a.createdAt || 0);
         });
-      }, 100);
+        setTopNews(sorted[0]);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
-      return () => clearInterval(interval);
-    }
-  }, [isFarming]);
+  // Fetch dynamic daily tasks
+  useEffect(() => {
+    if (!user?.id) return;
 
-  // Handle swipe on news card
-  const handleSwipe = (direction) => {
-    // Add points for engagement if swiped "Interesting"
-    if (direction === "right") {
-      setPoints((prev) => prev + 5);
-    }
-    // Move to next news item
-    setCurrentNewsIndex((prev) => (prev + 1) % newsItems.length);
+    const tasksRef = ref(database, "tasks/daily");
+    const userTasksRef = ref(database, `connections/${user.id}/tasks/daily`);
+
+    const unsubTasks = onValue(tasksRef, (tasksSnap) => {
+      const allDailyTasks = tasksSnap.val() || {};
+
+      const unsubUserTasks = onValue(userTasksRef, (userTasksSnap) => {
+        const userDailyTasks = userTasksSnap.val() || {};
+
+        const previewTasks = Object.entries(allDailyTasks)
+          .map(([id, task]) => {
+            const userTask = userDailyTasks[id] || {};
+            const progress = userTask.progress || 0;
+            const target = task.target || 1;
+            return {
+              id,
+              ...task,
+              progress,
+              completed: userTask.completed || progress >= target,
+              claimed: userTask.claimed || false
+            };
+          })
+          .slice(0, 2); // Show only top 2
+
+        setDailyTasksPreview(previewTasks);
+      });
+      return unsubUserTasks;
+    });
+
+    return () => unsubTasks();
+  }, [user?.id]);
+
+  const getTaskIcon = (task) => {
+    if (task.type === "news") return <Zap className="h-4 w-4 text-indigo-200" />;
+    if (task.type === "game") return <Award className="h-4 w-4 text-pink-200" />;
+    if (task.type === "network" || task.type === "partnership" || task.title?.toLowerCase().includes("invite"))
+      return <Users className="h-4 w-4 text-amber-200" />;
+    return <CheckSquare className="h-4 w-4 text-purple-200" />;
   };
 
-  // Handle farming button click
-  const handleFarmingClick = () => {
-    if (farmingProgress === 100) {
-      // Claim points
-      setPoints((prev) => prev + 50);
-      setFarmingProgress(0);
-      setIsFarming(false);
-    } else {
-      // Start farming
-      setIsFarming(true);
-    }
+  const getIconBg = (task) => {
+    if (task.type === "news") return "bg-indigo-500/30";
+    if (task.type === "game") return "bg-pink-500/30";
+    if (task.type === "network" || task.type === "partnership" || task.title?.toLowerCase().includes("invite"))
+      return "bg-amber-500/30";
+    return "bg-purple-500/30";
   };
 
   // Navigate to /game on "Play Game" button click
@@ -743,7 +727,7 @@ export default function HomeComponent() {
           {/* Header: only profile related card */}
           <header className="sticky top-0 z-10 bg-white/10 backdrop-blur-md border-b border-white/20 p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 cursor-pointer" onClick={()=>navigate("/profile")}>
+              <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/profile")}>
                 <Avatar className="h-12 w-12 border-2 border-white/30">
                   <AvatarImage src={user.photo_url} alt="User" />
                   <AvatarFallback className="text-lg"></AvatarFallback>
@@ -751,18 +735,18 @@ export default function HomeComponent() {
                 <div className="flex flex-col">
                   <span className="font-bold text-base text-white">{user.username}</span>
                   <div className="flex items-center gap-1">
-                    <span className="font-bold text-sm text-amber-300">{scores?.total_score || 0} XP</span>
+                    <span className="font-bold text-sm text-amber-300">{Math.floor(scores?.total_score || 0)} XP</span>
                     <Zap className="h-4 w-4 text-amber-300 fill-amber-300" />
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-white text-md">🔥{currentStreak}</span>
-                
+
                 <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-white/10">
                   <Bell className="h-5 w-5" />
                 </Button>
-                
+
                 {/* <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-white/10">
                   <Menu className="h-5 w-5" />
                 </Button> */}
@@ -772,38 +756,24 @@ export default function HomeComponent() {
 
           <main className="flex-1 p-4 overflow-auto ">
             {/* Points and Farming Section */}
-            <Card className="mb-6 rounded-none overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-sm">
+            <Card className="mb-6 rounded-2xl overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-sm">
               <CardContent className="p-4">
                 <div className="flex justify-between items-center mb-2">
                   <div>
-                    <h3 className="text-base font-semibold text-white">Your Points</h3>
-                    <div className="text-2xl font-bold flex items-center gap-1 text-amber-300">
-                      {/* {scores?.farming_score || 0}      {farmingState.pointsEarned.toFixed(2)} */}
-                      {scores?.farming_score || 0}
-
-                      <Zap className="h-5 w-5 text-amber-300 fill-amber-300" />
+                    <h3 className="text-lg font-bold text-white opacity-90">Your Points</h3>
+                    <div className="text-3xl font-black flex items-center gap-2 text-amber-400">
+                      {Math.floor(scores?.farming_score || 0)}
+                      <Zap className="h-6 w-6 text-amber-400 fill-amber-400" />
                     </div>
                   </div>
                   <FarmingButton />
                 </div>
-                {isFarming && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-white/90">
-                      <span>Farming Progress</span>
-                      <span>{Math.floor(farmingProgress)}%</span>
-                    </div>
-                    <Progress
-                      value={farmingProgress}
-                      className="h-1.5 bg-white/20"
-                      indicatorClassName="bg-amber-400"
-                    />
-                  </div>
-                )}
+
               </CardContent>
             </Card>
 
             {/* Fruit Ninja Game Card */}
-            <Card className="mb-8 rounded-none overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-md ">
+            <Card className="mb-8 rounded-2xl overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-md ">
               <div className="relative rounded">
                 <img
                   src="https://i.postimg.cc/W109Bc3N/Fruit-Ninja-2.jpg"
@@ -830,60 +800,42 @@ export default function HomeComponent() {
             <div className="mt-6">
               {/* News Swipe Card */}
               <h2 className="text-white-visible text-xl font-bold mb-3 text-white drop-shadow-lg">Today's Top Stories</h2>
-              <motion.div
-                key={currentNewsIndex}
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                className="mb-6 cursor-pointer"
-                onClick={()=>navigate("/news")}
-                
-              >
-                <Card className="rounded-none overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-md">
-                  <div className="relative">
-                    <img
-                      src={newsItems[currentNewsIndex].imageUrl || "/placeholder.svg"}
-                      alt={newsItems[currentNewsIndex].title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <Badge className="absolute top-3 left-3 bg-indigo-600 text-gray-100 rounded px-1 py-1">
-                      {newsItems[currentNewsIndex].category}
-                    </Badge>
-                    <Badge className="absolute top-3 right-3 bg-gray-700/70 text-gray-100 rounded px-1 py-1">
-                      {newsItems[currentNewsIndex].readTime}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-bold mb-2 text-white">
-                      {newsItems[currentNewsIndex].title}
-                    </h3>
-                    <p className="text-white/80 text-sm mb-4">
-                      {newsItems[currentNewsIndex].summary}
-                    </p>
-                    <div className="flex justify-between items-center">
-                      {/* <span className="text-xs text-white/60">Swipe to interact</span> */}
-                      {/* <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-red-300/50 text-black-300 hover:bg-red-500/20"
-                          onClick={() => handleSwipe("left")}
-                        >
-                          Skip
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-green-300/50 text-black-300 hover:bg-green-500/20"
-                          onClick={() => handleSwipe("right")}
-                        >
-                          Interesting
-                        </Button>
-                      </div> */}
+              <div className="home-news-preview mb-6">
+                {topNews ? (
+                  <Card
+                    className="rounded-xl overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-md cursor-pointer transition-transform hover:scale-[1.02]"
+                    onClick={() => navigate("/news")}
+                  >
+                    <div className="relative">
+                      <img
+                        src={topNews.imageUrl || "https://i.postimg.cc/W109Bc3N/Fruit-Ninja-2.jpg"}
+                        alt={topNews.title}
+                        className="w-full h-48 object-cover"
+                      />
+                      {topNews.category && (
+                        <Badge className="absolute top-3 left-3 bg-indigo-600 text-gray-100 rounded px-2 py-1 border-none">
+                          {topNews.category}
+                        </Badge>
+                      )}
+                      <Badge className="absolute top-3 right-3 bg-gray-900/60 text-gray-100 rounded px-2 py-1 border-none flex items-center gap-1">
+                        <ThumbsUp className="h-3 w-3" /> {topNews.likes || 0}
+                      </Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                    <CardContent className="p-4 bg-gradient-to-b from-transparent to-purple-900/40">
+                      <h3 className="text-lg font-bold mb-2 text-white line-clamp-1">
+                        {topNews.title}
+                      </h3>
+                      <p className="text-white/80 text-sm mb-2 line-clamp-2">
+                        {topNews.summary}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="p-8 text-center text-white/40 bg-white/5 rounded-xl border border-white/10">
+                    Loading top stories...
+                  </div>
+                )}
+              </div>
 
               {/* Quick Access Sections */}
               <h2 className="text-xl font-bold mb-3 text-white drop-shadow-lg">Quick Access</h2>
@@ -951,41 +903,43 @@ export default function HomeComponent() {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="font-bold text-white">Daily Tasks</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-indigo-200 font-medium hover:bg-indigo-500/20 flex justify-between items-center"
-                        onClick={()=>navigate("/tasks")}
-                      >
-                        View All
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-indigo-200 font-medium hover:bg-indigo-500/20 flex justify-between items-center"
+                      onClick={() => navigate("/tasks", { state: { tab: 'daily' } })}
+                    >
+                      View All
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
                   </div>
-                  <div className="space-y-3 ">
-                    <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/10 cursor-pointer" onClick={()=>navigate("/news")}>
-                      <div className="flex items-center gap-3">
-                        <div className="bg-indigo-500/30 p-2 rounded-full">
-                          <Zap className="h-4 w-4 text-indigo-200" />
+                  <div className="space-y-3">
+                    {dailyTasksPreview.length > 0 ? (
+                      dailyTasksPreview.map((task) => (
+                        <div
+                          key={task.id}
+                          className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/10 cursor-pointer"
+                          onClick={() => navigate("/tasks", { state: { tab: 'daily' } })}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`${getIconBg(task)} p-2 rounded-full`}>
+                              {getTaskIcon(task)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-white">{task.title}</p>
+                              <p className="text-xs text-white/60">
+                                {task.progress || 0}/{task.target || 1} completed
+                              </p>
+                            </div>
+                          </div>
+                          <Badge className={`${task.claimed ? 'bg-gray-500/80' : getIconBg(task).replace('/30', '/80')} text-white`}>
+                            {task.claimed ? 'Done' : `+${task.xp || task.score || 0} XP`}
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">Read 5 news articles</p>
-                          <p className="text-xs text-white/60">2/5 completed</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-indigo-600/80 text-white">+25 XP</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/10 cursor-pointer"onClick={()=>navigate("/network")}>
-                      <div className="flex items-center gap-3">
-                        <div className="bg-amber-500/30 p-2 rounded-full">
-                          <Users className="h-4 w-4 text-amber-200" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white">Invite a friend</p>
-                          <p className="text-xs text-white/60">0/1 completed</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-amber-600/80 text-white">+100 XP</Badge>
-                    </div>
+                      ))
+                    ) : (
+                      <p className="text-white/60 text-xs text-center py-2">No daily tasks available</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -993,7 +947,7 @@ export default function HomeComponent() {
           </main>
         </div>
       </div>
-       {showWelcomePopup && (
+      {showWelcomePopup && (
         <WelcomePopup onClose={() => setShowWelcomePopup(false)} />
       )}
     </div>

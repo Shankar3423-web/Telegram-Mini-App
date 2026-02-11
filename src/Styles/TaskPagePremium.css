@@ -1,0 +1,217 @@
+.task-page-premium {
+    background: linear-gradient(135deg, #4f46e5 0%, #a855f7 50%, #ec4899 100%);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    /* Space for navbar */
+    color: white;
+    font-family: 'Inter', sans-serif;
+}
+
+.score-card-premium {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 24px;
+}
+
+.score-text-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.score-value {
+    font-size: 32px;
+    font-weight: 800;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.score-value span {
+    color: #fbbf24;
+    /* Yellow XP */
+}
+
+.checkbox-icon-container {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 12px;
+    color: #fbbf24;
+}
+
+/* Tabs Styling */
+.tabs-list-premium {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+    scrollbar-width: none;
+}
+
+.tabs-list-premium::-webkit-scrollbar {
+    display: none;
+}
+
+.tabs-trigger-premium {
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tabs-trigger-premium[data-state="active"] {
+    color: white;
+    border-bottom-color: white;
+}
+
+/* Task Card Styling */
+.task-card-premium {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 16px;
+}
+
+.task-card-header {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.task-icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.task-main-info {
+    flex: 1;
+}
+
+.task-title-premium {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.task-desc-premium {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+}
+
+.task-badges-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.xp-badge-premium {
+    background: #fbbf24;
+    color: #000;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+
+.start-btn-premium {
+    background: #3b82f6 !important;
+    /* Blue button */
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.claim-btn-premium {
+    background: #10b981 !important;
+    /* Green button */
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+
+/* Progress Section */
+.progress-section-premium {
+    margin-top: 12px;
+}
+
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 6px;
+}
+
+.progress-bar-container-premium {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill-premium {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.progress-fill-premium.completed {
+    background: #10b981;
+    /* Green when completed */
+}
+
+/* WATCH TASK VERIFICATION UI */
+.watch-verify-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.watch-code-input {
+    flex: 1;
+    max-width: 160px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.95);
+    color: #111;
+    font-size: 14px;
+    outline: none;
+}
+
+.watch-code-input::placeholder {
+    color: #666;
+}
+
+.watch-verify-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+    border-radius: 8px;
+    background: #22c55e;
+    color: white;
+    font-weight: 600;
+}

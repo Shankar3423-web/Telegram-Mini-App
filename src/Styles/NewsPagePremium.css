@@ -1,0 +1,215 @@
+.news-page-premium {
+    background: linear-gradient(180deg, #6123a1 0%, #a82fa2 100%);
+    min-height: 100vh;
+    color: white;
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.news-header-premium {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    z-index: 100;
+}
+
+.header-left-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.back-icon-btn {
+    color: white !important;
+    padding: 0 !important;
+    min-width: auto !important;
+}
+
+.news-header-titles h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.news-header-titles p {
+    font-size: 11px;
+    margin: 0;
+    opacity: 0.7;
+}
+
+.news-score-display {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px 18px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Swiper Container */
+.news-swiper-container {
+    flex: 1;
+    width: 100%;
+    padding: 10px 0;
+    display: flex;
+    align-items: center;
+}
+
+.news-swiper {
+    width: 100%;
+    height: 100%;
+}
+
+.swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 24px;
+    box-sizing: border-box;
+}
+
+/* Card */
+.news-card-premium {
+    background: linear-gradient(180deg, rgba(80, 20, 140, 0.4) 0%, rgba(200, 30, 150, 0.8) 100%);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.news-image-wrap {
+    width: 100%;
+    height: 240px;
+    position: relative;
+}
+
+.news-item-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.news-category-tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #6366f1;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.news-info-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+}
+
+.news-title-text {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0;
+    width: 100%;
+    text-align: left;
+}
+
+.news-description-text {
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-align: left;
+    width: 100%;
+}
+
+.news-meta-row {
+    margin-top: 10px;
+}
+
+.news-readmore-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+/* Buttons */
+.news-interaction-btns {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.news-btn-action {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 16px;
+    padding: 12px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-skip {
+    color: #ff4d4d;
+}
+
+.btn-interest.active {
+    background: #ec4899;
+}
+
+.btn-interest:not(.active) {
+    color: #4CAF50;
+    /* Greenish/White interesting color */
+    color: white;
+}
+
+.news-btn-action:active {
+    transform: scale(0.95);
+}
+
+/* Hide Swiper Pagination/Scrollbar */
+.swiper-pagination,
+.swiper-scrollbar {
+    display: none !important;
+}
+
+/* Completion */
+.feed-complete-premium {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}

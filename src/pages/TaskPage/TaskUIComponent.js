@@ -1,848 +1,337 @@
-import { useState,useEffect } from "react"
-import { ChevronLeft, Award, Zap, Users, Wallet, CheckSquare } from "lucide-react"
-import { Button } from "../../components/ui/button"
-import { Card, CardContent } from "../../components/ui/card"
-import { Badge } from "../../components/ui/badge"
+import { useEffect, useState } from "react";
+import {
+  ChevronLeft,
+  Zap,
+  CheckSquare,
+  Trophy,
+  Star,
+  Bell,
+  PlayCircle,
+  Share2,
+  ClipboardCheck
+} from "lucide-react";
+import { Button } from "../../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
-import { Progress } from "../../components/ui/progress.js"
-import {useTelegram} from "../../reactContext/TelegramContext"
-import { useNavigate } from "react-router-dom"
-import {database} from "../../services/FirebaseConfig"
-import {ref,onValue,set,update}from "firebase/database"
-import {addHistoryLog} from "../../services/addHistory.js";
-
-const BOT_TOKEN =process.env.REACT_APP_BOT_TOKEN;
+import { useTelegram } from "../../reactContext/TelegramContext";
+import { useNavigate, useLocation } from "react-router-dom";
+import { database } from "../../services/FirebaseConfig";
+import { ref, onValue, update, get, set } from "firebase/database";
+import "../../Styles/TaskPagePremium.css";
 
 export default function TasksPage() {
-  const [points, setPoints] = useState(120)
-  const [activeTab, setActiveTab] = useState("daily")
-  const { user,scores} = useTelegram()
-  const [tasks, setTasks] = useState([]);
-  const [filterType, setFilterType] = useState("all");
-  const navigate = useNavigate()
-  const [clicked,setClick] =useState({ watch: {}, social: false })
-  const [verify,setVerify] = useState("")
+  const { user, scores } = useTelegram();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const [buttonText, setButtonText] = useState([]);
-  const [membershipStatus, setMembershipStatus] = useState(null);
-
+  const [tasks, setTasks] = useState({});
   const [userTasks, setUserTasks] = useState({});
-  const [gameCompleted, setGameCompleted] = useState(false);
-  const [newsCount,setnewsCount] = useState(0)
+  const [watchCodes, setWatchCodes] = useState({});
+  const [activeTab, setActiveTab] = useState(location.state?.tab || "all");
 
-  //connetions ref
-  const userTasksRef = ref(database, `connections/${user.id}`);
+  const userTasksRef = ref(database, `connections/${user.id}/tasks`);
   const userScoreRef = ref(database, `users/${user.id}/Score`);
-  const userId = user.id
 
+  /* ---------------- LOAD TASKS & USER PROGRESS ---------------- */
   useEffect(() => {
-    const tasksRef = ref(database, "tasks"); 
-    const gameTaskRef = ref(database, `connections/${user.id}/tasks/daily/game`);
-    const newsRef = ref(database,`connections/${user.id}/tasks/daily/news`)
-
-    onValue(tasksRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setTasks(Object.values(snapshot.val()));
-      } else {
-        setTasks([]);
-      }
+    onValue(ref(database, "tasks"), snap => {
+      setTasks(snap.val() || {});
     });
-    onValue(gameTaskRef, (snapshot) => {
-      const value = snapshot.val();
-      
-      setGameCompleted(value === true);
+    onValue(userTasksRef, snap => {
+      setUserTasks(snap.val() || {});
     });
-    onValue(newsRef, (snapshot) => {
-      const value = snapshot.val();
-      if(value){
-        const newsLength = Object.keys(value).length;
-        setnewsCount(newsLength)
-      }else{
-        setnewsCount(0)
-      }
-    });
-
-
-    const unsubscribe = onValue(userTasksRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setUserTasks(data);
-      } else {
-        setUserTasks({});
-      }
-    });
-  
-    // Cleanup the listener on unmount
-    return () => unsubscribe();
-
-
-
   }, [user.id]);
 
-  // useEffect(() => {
-  //   const userTasksRef = ref(database, `connections/${user.id}`);
-  //   onValue(userTasksRef, (snapshot) => {
-  //     if (snapshot.exists()) {
-  //       const userTasksData = snapshot.val();
-  //       console.log(userTasksData)
+  /* ---------------- DAILY → WEEKLY TRACKING (UNCHANGED) ---------------- */
+  const handleDailyCompletionForWeekly = async () => {
+    const allDailyTasks = tasks.daily || {};
+    const userDailyTasks = userTasks.daily || {};
 
-  //     }
-  //   });
-  // }, [user.id]);
-  
+    if (Object.keys(allDailyTasks).length === 0) return;
 
+    const allCompleted = Object.keys(allDailyTasks).every(
+      taskId => userDailyTasks[taskId]?.completed === true
+    );
 
-  // Mock tasks data
-  const dailyTasks = [
-    {
-      id: 1,
-      title: "Read 5 news articles",
-      description: "Swipe through news articles to earn points",
-      completed: newsCount>5?5:newsCount,
-      type:"news",
-      total: 5,
-      points: 25,
-      icon: <Zap className="h-5 w-5 text-indigo-300" />,
-      iconBg: "bg-indigo-500/30",
-    },
-    {
-      id: 2,
-      title: "Play Fruit Ninja",
-      description: "Play the game at least once today",
-      completed: 0,
-      type:"game",
-      total: 1,
-      points: 15,
-      icon: <Award className="h-5 w-5 text-pink-300" />,
-      iconBg: "bg-pink-500/30",
-    },
-    {
-      id: 3,
-      title: "Invite a friend",
-      description: "Share your referral link with a friend",
-      completed: 0,
-      type:"referral",
-      total: 1,
-      points: 50,
-      icon: <Users className="h-5 w-5 text-amber-300" />,
-      iconBg: "bg-amber-500/30",
-    },
-  ]
+    if (!allCompleted) return;
 
-  const weeklyTasks = [
-    {
-      id: 4,
-      title: "Complete all daily tasks",
-      description: "Finish all daily tasks for 3 days",
-      completed: 1,
-      total: 3,
-      points: 100,
-      icon: <CheckSquare className="h-5 w-5 text-emerald-300" />,
-      iconBg: "bg-emerald-500/30",
-    },
-    {
-      id: 5,
-      title: "Earn 500 points",
-      description: "Accumulate 500 points this week",
-      completed: 120,
-      total: 500,
-      points: 200,
-      icon: <Zap className="h-5 w-5 text-amber-300" />,
-      iconBg: "bg-amber-500/30",
-    },
-  ]
+    const today = new Date().toDateString();
+    const lastDateRef = ref(
+      database,
+      `connections/${user.id}/meta/lastDailyCompleteDate`
+    );
+    const lastSnap = await get(lastDateRef);
 
-  const communityTasks = [
-    {
-      id: 6,
-      title: "Join Telegram group",
-      description: "Join our community Telegram group",
-      completed: 0,
-      total: 1,
-      points: 30,
-      icon: <Users className="h-5 w-5 text-blue-300" />,
-      iconBg: "bg-blue-500/30",
-    },
-    {
-      id: 7,
-      title: "Follow on Twitter",
-      description: "Follow our official Twitter account",
-      completed: 0,
-      total: 1,
-      points: 30,
-      icon: <Users className="h-5 w-5 text-sky-300" />,
-      iconBg: "bg-sky-500/30",
-    },
-  ]
+    if (lastSnap.val() === today) return;
 
-  const achievements = [
-    {
-      id: 8,
-      title: "Early Adopter",
-      description: "Join during the beta phase",
-      completed: 1,
-      total: 1,
-      points: 100,
-      icon: <Award className="h-5 w-5 text-amber-300" />,
-      iconBg: "bg-amber-500/30",
-    },
-    {
-      id: 9,
-      title: "News Junkie",
-      description: "Read 100 news articles",
-      completed: 23,
-      total: 100,
-      points: 500,
-      icon: <Zap className="h-5 w-5 text-indigo-300" />,
-      iconBg: "bg-indigo-500/30",
-    },
-  ]
-  const defaultTask ={      
-        id: null,
-        title: "",
-        description: "",
-        completed: 0,
-        total: 1,
-        points: 100,
-        icon: <Zap className="h-5 w-5 text-indigo-300" />,
-        iconBg: "bg-indigo-500/30",
-  }
-  const newAchievement = tasks.map((each)=>({...defaultTask,...each}))
+    const weeklyTasks = tasks.weekly || {};
 
-  const fetchChatMember = async (chatId, userId) => {
-    try {
-      const response = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${chatId}&user_id=${userId}`
-      );
-      const data = await response.json();
-      console.log(data)
-      return data.ok ? data.result : null;
-    } catch (err) {
-      console.error("API Request Failed:", err);
-      return null;
+    for (const [weeklyTaskId, weeklyTask] of Object.entries(weeklyTasks)) {
+      if (weeklyTask.weeklyMode === "tracked") {
+        const userWeeklyRef = ref(
+          database,
+          `connections/${user.id}/tasks/weekly/${weeklyTaskId}`
+        );
+        const userWeeklySnap = await get(userWeeklyRef);
+
+        const current = userWeeklySnap.val()?.progress || 0;
+        const next = current + 1;
+
+        await update(userWeeklyRef, {
+          progress: next,
+          completed: next >= weeklyTask.target,
+          lastUpdated: Date.now()
+        });
+      }
+    }
+
+    await set(lastDateRef, today);
+  };
+
+  /* ---------------- CLAIM REWARD ---------------- */
+  const claimReward = async (category, taskId, task) => {
+    const xp = Number(task.xp || 0);
+    const snap = await get(userScoreRef);
+    const s = snap.val() || {};
+
+    await update(userScoreRef, {
+      task_score: (s.task_score || 0) + xp,
+      total_score: (s.total_score || 0) + xp
+    });
+
+    const userTaskRef = ref(
+      database,
+      `connections/${user.id}/tasks/${category}/${taskId}`
+    );
+
+    if (category === "achievements") {
+      await set(userTaskRef, {
+        progress: 0,
+        completed: false,
+        claimed: false,
+        lastUpdated: Date.now()
+      });
+    } else {
+      await update(userTaskRef, {
+        claimed: true,
+        claimedAt: Date.now()
+      });
+    }
+
+    if (category === "daily") {
+      await handleDailyCompletionForWeekly();
     }
   };
 
-  // const handleChatId = async () => {
-  //   try {
-  //     const response = await fetch(
-  //       `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`
-  //     );
-    
-  //     const data = await response.json();
-  //     console.log(data)
-  //     if(data.ok){
-  //       return data.result[0].my_chat_member?.chat?.id|| null;
-        
-  //     }
+  /* ---------------- START TASK (WATCH UPDATED) ---------------- */
+  const startTask = async (task) => {
+    const userTaskRef = ref(
+      database,
+      `connections/${user.id}/tasks/${task.category}/${task.id}`
+    );
 
-      
-  //   } catch (err) {
-  //     console.error("Error fetching chat ID:", err);
-  //     return null;
-  //   }
-  // };
-  const handleChatId = async () => {
-    try {
-      const response = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`
-      );
-      const data = await response.json();
-      console.log(data)
-  
-      if (data.ok) {
-        const chatUpdate = data.result.find(update => update.my_chat_member);
-        if (chatUpdate) {
-          const chat = chatUpdate.my_chat_member.chat;
-          return {
-            chatId: chat.id,
-            chatType: chat.type, // "channel" or "supergroup"
-          };
-        }
+    if (task.type === "watch") {
+      await update(userTaskRef, {
+        started: true,
+        lastStartedAt: Date.now()
+      });
+      window.open(task.url, "_blank");
+      return;
+    }
+
+    if (task.type === "news") navigate("/news");
+    else if (task.type === "game") navigate("/game");
+    else if (task.type === "partnership") navigate("/network");
+  };
+
+  /* ---------------- VERIFY WATCH CODE ---------------- */
+  const verifyWatchCode = async (task) => {
+    const enteredCode = (watchCodes[task.id] || "").trim();
+
+    if (!enteredCode || enteredCode !== task.watchCode) {
+      alert("Invalid verification code");
+      return;
+    }
+
+    await update(
+      ref(database, `connections/${user.id}/tasks/${task.category}/${task.id}`),
+      {
+        completed: true,
+        progress: 1,
+        codeVerified: true,
+        verifiedAt: Date.now()
       }
-  
-      return { chatId: null, chatType: null };
-    } catch (err) {
-      console.error("Error fetching chat ID:", err);
-      return { chatId: null, chatType: null };
+    );
+  };
+
+  /* ---------------- FILTER TASKS ---------------- */
+  const getFilteredTasks = (tab) => {
+    const allTasks = Object.entries(tasks).flatMap(([category, catTasks]) =>
+      Object.entries(catTasks || {}).map(([id, task]) => ({
+        id,
+        category,
+        ...task
+      }))
+    );
+
+    switch (tab) {
+      case "daily": return allTasks.filter(t => t.category === "daily");
+      case "weekly": return allTasks.filter(t => t.category === "weekly");
+      case "achievements": return allTasks.filter(t => t.category === "achievements");
+      case "watch": return allTasks.filter(t => t.type === "watch");
+      case "social": return allTasks.filter(t => t.type === "social");
+      case "partnership": return allTasks.filter(t => t.type === "partnership");
+      case "misc": return allTasks.filter(t => t.type === "misc");
+      default: return allTasks;
     }
   };
-  
-  // const startMembershipCheck = async (taskId) => {
-  //   const clickBtn = document.getElementById(`clickBtn${taskId}`);
-  //   let checkCount = 0;
-  
-  //   const checkInterval = setInterval(async () => {
-  //     checkCount += 1;
-  //    const { chatId, chatType } = await handleChatId();
-  //     const userId = user.id
-  //     console.log(chatId)
-  
-  //     if (!chatId) {
-  //       setMembershipStatus("Unable to fetch chat ID");
-  //       setButtonText(prev => ({ ...prev, [taskId]: "Failed" }));
-  //       clearInterval(checkInterval);
-  //       return;
-  //     }
-      
-  
-  //     const chatMember = await fetchChatMember(chatId, userId);
-  //     console.log(chatMember)
-  
-  //     if (!chatMember || !chatMember.status) {
-  //       setMembershipStatus("Unable to verify group status");
-  //       setButtonText(prev => ({ ...prev, [taskId]: "Failed" }));
-  //       clearInterval(checkInterval);
-  //       return;
-  //     }
-  
-  //     const { status } = chatMember;
-  //     console.log("Telegram Status:", status);
-  
-  //     if (["member", "administrator", "creator", "restricted","left", "kicked"].includes(status)) {
-  //       setMembershipStatus("Successfully joined the group!");
-  
-  //       // Update Firebase to allow claim
-  //       await update(userTasksRef, { [taskId]: false });
-  
-  //       // Set button text to 'Claim'
-  //       setButtonText(prev => ({ ...prev, [taskId]: "Claim" }));
-  //       clearInterval(checkInterval);
-  //     // }
-  //     //  else if (["left", "kicked"].includes(status)) {
-  //     //   setMembershipStatus("You left or were removed from the group.");
-  //     //   setButtonText(prev => ({ ...prev, [taskId]: "Join Again" }));
-  //     //   clearInterval(checkInterval);
-  //     } else {
-  //       setMembershipStatus("Unknown group status.");
-  //       setButtonText(prev => ({ ...prev, [taskId]: "Join Again" }));
-  //       clearInterval(checkInterval);
-  //     }
-  
-  //     // Timeout after 5 minutes (max 100 tries @ 3s each)
-  //     if (checkCount >= 100) {
-  //       setButtonText(prev => ({ ...prev, [taskId]: "Failed" }));
-  //       clearInterval(checkInterval);
-  //     }
-  //   }, 3000);
-  // };
-  const startMembershipCheck = async (taskId, chatId, chatType) => {
-    const clickBtn = document.getElementById(`clickBtn${taskId}`);
-    let checkCount = 0;
-    console.log(chatId,chatType,taskId)
-  
-    const checkInterval = setInterval(async () => {
-      checkCount += 1;
-  
-      if (!chatId || !chatType) {
-        setMembershipStatus("Chat ID or type missing");
-        setButtonText(prev => ({ ...prev, [taskId]: "Failed" }));
-        clearInterval(checkInterval);
-        return;
-      }
-      
-      // Fetch the chat member status from the Telegram API
-      const chatMember = await fetchChatMember(chatId, user.id);
-  
-      if (!chatMember || !chatMember.status) {
-        setMembershipStatus("Unable to verify membership");
-        setButtonText(prev => ({ ...prev, [taskId]: "Failed" }));
-        clearInterval(checkInterval);
-        return;
-      }
-  
-      const { status } = chatMember;
-      let isMember = false;
-  
-      // Check membership status for groups and channels
-      if (chatType === "group"||chatType === "supergroup") {
-        // Group members could be "member", "administrator", "creator"
-        isMember = ["member", "administrator", "creator"].includes(status);
-      } else if (chatType === "channel") {
-        // For channels, a user is considered a "member" if they're subscribed
-        isMember = status === "member";
-      }
-  
-      if (isMember) {
-        setMembershipStatus("Successfully joined the group/channel!");
-        await update(userTasksRef, { [taskId]: false }); // Mark task as claimable
-        setButtonText(prev => ({ ...prev, [taskId]: "Claim" }));
-        clearInterval(checkInterval);
-      } else if (["left", "kicked"].includes(status)) {
-        setMembershipStatus("You left or were removed.");
-        setButtonText(prev => ({ ...prev, [taskId]: "Join Again" }));
-        clearInterval(checkInterval);
-      } else {
-        setMembershipStatus("Not a valid member.");
-        setButtonText(prev => ({ ...prev, [taskId]: "Join Again" }));
-        clearInterval(checkInterval);
-      }
-  
-      if (checkCount >= 100) {
-        setButtonText(prev => ({ ...prev, [taskId]: "Failed" }));
-        clearInterval(checkInterval);
-      }
-    }, 3000); // Repeat the check every 3 seconds
+
+  /* ---------------- ICON LOGIC (UNCHANGED) ---------------- */
+  const getTaskIcon = (task) => {
+    if (task.type === "news") return <ClipboardCheck size={20} className="text-blue-400" />;
+    if (task.type === "game") return <Trophy size={20} className="text-pink-400" />;
+    if (task.type === "watch") return <PlayCircle size={20} className="text-amber-400" />;
+    if (task.type === "social") return <Share2 size={20} className="text-indigo-400" />;
+    if (task.category === "daily") return <Zap size={20} className="text-blue-400" />;
+    if (task.category === "achievements") return <Star size={20} className="text-amber-400" />;
+    return <Bell size={20} className="text-purple-400" />;
   };
-  
 
-  const handleTitle =async (task,taskId)=>{
-    const clickBtn = document.getElementById(`clickBtn${taskId}`)
-    const updatedButtonTexts = { ...buttonText };
-  
-    if (!updatedButtonTexts[taskId]) {
-      updatedButtonTexts[taskId] = "Start Task";
-    }
+  /* ---------------- RENDER TASKS ---------------- */
+  const renderTasksByTab = (tab) =>
+    getFilteredTasks(tab).map((task) => {
+      const userTask = userTasks?.[task.category]?.[task.id] || {};
+      const progress = userTask.progress || 0;
+      const completed = userTask.completed || progress >= task.target;
+      const claimed = userTask.claimed;
+      const percent = Math.min((progress / (task.target || 1)) * 100, 100);
 
-    switch(task.type?.toLowerCase()){
-     
-      case "watch":
-        if (updatedButtonTexts[taskId] === "Start Task" || updatedButtonTexts[taskId] === "Join Again") {
-          window.open(task.url, "_blank");
-          clickBtn.style.display="none"
-          setClick(prevState => ({
-            ...prevState, 
-            watch: { 
-              ...prevState.watch, 
-              [taskId]: true 
-            },
-          }));
-          
-          updatedButtonTexts[taskId] = "Claim";
-        } else if (updatedButtonTexts[taskId] === "Claim") {
-          updatedButtonTexts[taskId] = "Processing...";
-          try {
-            await update(userTasksRef, { [taskId]: true });
-            await update(userScoreRef, {
-              task_score: task.points
-            });
-            const textData ={
-                    action: 'Task Points Successfully Added',
-                    points: task.points,
-                    type: 'task',
-            }
-            
-            addHistoryLog(userId,textData)
+      const isWeeklyTracked =
+        task.category === "weekly" && task.weeklyMode === "tracked";
 
-            clickBtn.style.display = "none"
-          } catch (error) {
-            updatedButtonTexts[taskId] = "Failed";
-            setTimeout(() => {
-              setButtonText(prevTexts => ({
-                ...prevTexts,
-                [taskId]: "Try Again"
-              }));
-            }, 2000);
-          }
-        }
-      break;
-
-      case "social":
-          setClick(prevState => ({
-            ...prevState,
-            [task.title]: true,
-          }));
-          if (updatedButtonTexts[taskId] === "Start Task" || updatedButtonTexts[taskId] === "Join Again" || updatedButtonTexts[taskId] ==="Failed") {
-            updatedButtonTexts[taskId] = "Checking...";
-            window.open(task.url, "_blank");
-
-            const { chatId, chatType } = await handleChatId(task);
-            // Assume startMembershipCheck logic
-            await startMembershipCheck(taskId,chatId, chatType)
-  
-            
-          } else if (updatedButtonTexts[taskId] === "Claim" && userTasks[taskId]=== false) {
-            updatedButtonTexts[taskId] = "Processing...";
-            
-            try {
-              await update(userTasksRef, { [taskId]: true });
-              await update(userScoreRef, {
-                task_score: task.points
-              });
-              clickBtn.style.display="none"
-            } catch (error) {
-              updatedButtonTexts[taskId] = "Failed";
-              setTimeout(() => {
-                setButtonText(prevTexts => ({
-                  ...prevTexts,
-                  [taskId]: "Try Again"
-                }));
-              }, 2000);
-            }
-          }
-      break;
-      case "partnership":
-        navigate("/network")
-
-
-        break
-      case "misc":
-        window.open(task.url,"_blank")
-        break;
-
-      default:
-        setClick({"watch":{},"social":false})
-    }
-    setButtonText(updatedButtonTexts);
-  }
-
-
-
-
-  const handleVerification = (task,taskId)=>{
-    const verifycode = `1234${taskId}`
-    const verifyBlock = document.getElementById(`verifyblock-${taskId}`)
-    const clickBtn = document.getElementById(`clickBtn${taskId}`)
-  
-
-    if(verifycode === verify+`${taskId}` && verify !== ""){
-      verifyBlock.style.display = "none"
-      clickBtn.style.display = "block"
-      update(userTasksRef, { [taskId]: false });
-
-
-    }
-
-   
-  
-
-  }
- 
-  const filterTasks = filterType ==="all"? Object.entries(newAchievement) :Object.entries(newAchievement).filter(([taskId,task])=>task.type === filterType)
-
-  
-
-  // Handle task completion
-  const completeTask = (taskId) => {
-    // In a real app, this would update the task status in the backend
-    // For now, we'll just add points
-
-    setPoints((prev) => prev + 25)
-  }
-  const handleRoute = (path)=>{
-    if(path === "referral"){
-      navigate(`/network`)
-    }else{
-      navigate(`/${path}`)
-    }
-    
-  }
-
-  return (
-    <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-indigo-600/90 via-purple-600/80 to-pink-600/90">
-      {/* Animated Background Elements */}
-
-      {/* floating curved lines */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/90 via-purple-600/80 to-pink-600/90 z-0">
-            <div className="absolute inset-0 opacity-20">
-              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path
-                      d="M 20 0 L 0 0 0 20"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="0.5"
-                      opacity="0.5"
-                    />
-                  </pattern>
-                  <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
-                    <rect width="80" height="80" fill="url(#smallGrid)" />
-                    <path
-                      d="M 80 0 L 0 0 0 80"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="1"
-                      opacity="0.8"
-                    />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-              </svg>
+      return (
+        <div key={`${task.category}-${task.id}`} className="task-card-premium">
+          <div className="task-card-header">
+            <div className="task-icon-circle bg-white/10">
+              {getTaskIcon(task)}
             </div>
 
-            {/* Floating Shapes */}
-            <div className="absolute top-[10%] left-[20%] w-20 h-20 bg-gradient-to-r from-blue-400 to-indigo-400 opacity-20 blur-xl animate-float"></div>
-            <div className="absolute top-[60%] right-[15%] w-24 h-24 bg-gradient-to-r from-purple-400 to-pink-400 opacity-20 blur-xl animate-float-delayed"></div>
-            <div className="absolute bottom-[20%] left-[30%] w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-400 opacity-20 blur-xl animate-float-slow"></div>
-            <div className="absolute inset-0 opacity-30">
-              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0,100 C150,50 250,150 400,100" stroke="white" strokeWidth="0.5" fill="none" />
-                <path d="M0,200 C150,150 250,250 400,200" stroke="white" strokeWidth="0.5" fill="none" />
-                <path d="M0,300 C150,250 250,350 400,300" stroke="white" strokeWidth="0.5" fill="none" />
-                <path d="M0,400 C150,350 250,450 400,400" stroke="white" strokeWidth="0.5" fill="none" />
-                <path d="M0,500 C150,450 250,550 400,500" stroke="white" strokeWidth="0.5" fill="none" />
-                <path d="M0,600 C150,550 250,650 400,600" stroke="white" strokeWidth="0.5" fill="none" />
-                <path d="M0,700 C150,650 250,750 400,700" stroke="white" strokeWidth="0.5" fill="none" />
-                <path d="M0,800 C150,750 250,850 400,800" stroke="white" strokeWidth="0.5" fill="none" />
-              </svg>
+            <div className="task-main-info">
+              <h3 className="task-title-premium">{task.title}</h3>
+              <p className="task-desc-premium">{task.description}</p>
             </div>
-      </div>
 
-      {/* App Content */}
-      <div className="flex-1 flex flex-col overflow-hidden z-10">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white/10 backdrop-blur-md border-b border-white/20 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-white/10" onClick={() => navigate("/")}>
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <h1 className="text-xl font-bold text-white">Tasks</h1>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="font-medium text-sm text-white">{scores?.task_score || 0 }</span>
-              <Zap className="h-4 w-4 text-amber-300 fill-amber-300" />
+            <div className="task-badges-container">
+              <div className="xp-badge-premium">+{task.xp} XP</div>
+
+              {claimed ? (
+                <Button disabled className="start-btn-premium opacity-50">
+                  Claimed
+                </Button>
+              ) : completed ? (
+                <Button
+                  className="start-btn-premium claim-btn-premium"
+                  onClick={() => claimReward(task.category, task.id, task)}
+                >
+                  Claim Reward
+                </Button>
+              ) : !isWeeklyTracked ? (
+                <Button
+                  className="start-btn-premium"
+                  onClick={() => startTask(task)}
+                >
+                  Start Task
+                </Button>
+              ) : null}
             </div>
           </div>
+
+          {/* ✅ WATCH CODE VERIFICATION UI */}
+          {task.type === "watch" &&
+            userTask.started &&
+            !userTask.codeVerified &&
+            !completed && (
+              <div className="watch-verify-row">
+                <input
+                  className="watch-code-input"
+                  type="text"
+                  placeholder="Enter code"
+                  value={watchCodes[task.id] || ""}
+                  onChange={(e) =>
+                    setWatchCodes(p => ({ ...p, [task.id]: e.target.value }))
+                  }
+                />
+                <Button
+                  className="watch-verify-btn"
+                  onClick={() => verifyWatchCode(task)}
+                >
+                  Verify
+                </Button>
+              </div>
+            )}
+
+          <div className="progress-section-premium">
+            <div className="progress-labels">
+              <span>Progress</span>
+              <span>{progress} / {task.target}</span>
+            </div>
+            <div className="progress-bar-container-premium">
+              <div
+                className={`progress-fill-premium ${completed ? "completed" : ""}`}
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    });
+
+  /* ---------------- UI ---------------- */
+  return (
+    <div className="task-page-premium relative overflow-hidden">
+      <div className="relative z-10 p-4">
+        <header className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+            <ChevronLeft size={24} />
+          </Button>
+          <h1 className="text-xl font-bold">Tasks</h1>
         </header>
 
-        <main className="flex-1 p-4 overflow-auto">
-          {/* Task Score */}
-          <div className="mb-6 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/10">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-sm font-medium text-white/80">Your Task Score</h3>
-                <p className="text-2xl font-bold text-white">
-                  {scores?.task_score || 0 } <span className="text-amber-300">XP</span>
-                </p>
-              </div>
-              <div className="bg-white/10 rounded-full p-3">
-                <CheckSquare className="h-6 w-6 text-amber-300" />
-              </div>
-            </div>
+        <div className="score-card-premium">
+          <div>
+            <p className="score-text-label">Your Task Score</p>
+            <p className="score-value">
+              {scores?.task_score || 0} <span>XP</span>
+            </p>
           </div>
+          <div className="checkbox-icon-container">
+            <CheckSquare size={32} />
+          </div>
+        </div>
 
-          {/* Task Categories */}
-          <Tabs defaultValue="daily" className="mb-6 ">
-            <TabsList className="flex gap-4 bg-white/10 p-0.5  overflow-auto scroll-hidden ">
-              <TabsTrigger
-                value="daily"
-                className="data-[state=active]:bg-white/20 text-white ml-2"
-                onClick={() => setActiveTab("daily")}
-              >
-                Daily
-              </TabsTrigger>
-              <TabsTrigger
-                value="weekly"
-                className="data-[state=active]:bg-white/20 text-white"
-                onClick={() => setActiveTab("weekly")}
-              >
-                Weekly
-              </TabsTrigger>
-              {/* <TabsTrigger
-                value="community"
-                className="data-[state=active]:bg-white/20 text-white"
-                onClick={() => setActiveTab("community")}
-              >
-                Community
-              </TabsTrigger> */}
-              <TabsTrigger
-                value="achievements"
-                className="data-[state=active]:bg-white/20 text-white"
-                onClick={() => setActiveTab("achievements")}
-              >
-                Achievements
-              </TabsTrigger>
-              <TabsTrigger
-                value="all"
-                className="data-[state=active]:bg-white/20 text-white"
-                onClick={() => setFilterType("all")}
-              >
-                All
-              </TabsTrigger>
-              <TabsTrigger
-                value="watch"
-                className="data-[state=active]:bg-white/20 text-white"
-                onClick={() => setFilterType("watch")}
-              >
-                Watch
-              </TabsTrigger>
-              <TabsTrigger
-                value="social"
-                className="data-[state=active]:bg-white/20 text-white"
-                onClick={() => setFilterType("social")}
-              >
-                social
-              </TabsTrigger>
-              <TabsTrigger
-                value="partnership"
-                className="data-[state=active]:bg-white/20 text-white"
-                onClick={() => setFilterType("partnership")}
-              >
-                Partnership
-              </TabsTrigger>
-              <TabsTrigger
-                value="misc"
-                className="data-[state=active]:bg-white/20 text-white  mr-2"
-                onClick={() => setFilterType("misc")}
-              >
-                Misc
-              </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="tabs-list-premium">
+            <TabsTrigger value="daily">Daily</TabsTrigger>
+            <TabsTrigger value="weekly">Weekly</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="watch">Watch</TabsTrigger>
+            <TabsTrigger value="social">Social</TabsTrigger>
+            <TabsTrigger value="partnership">Partnership</TabsTrigger>
+            <TabsTrigger value="misc">Misc</TabsTrigger>
+          </TabsList>
 
-            </TabsList>
-            <TabsContent value="daily" className="mt-4 space-y-3">
-              {dailyTasks.map((task) => (
-                <Card key={task.id} className="border-none shadow-md bg-white/10 backdrop-blur-md" onClick={()=>handleRoute(task.type)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`${task.iconBg} p-2 rounded-full mt-1`}>{task.icon}</div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-white">{task.title}</h3>
-                            <p className="text-xs text-white/70 mt-1">{task.description}</p>
-                          </div>
-                          <Badge className="bg-amber-500/90">+{task.points} XP</Badge>
-                        </div>
-                        <div className="mt-3">
-                          <div className="flex justify-between text-xs text-white/70 mb-1">
-                            <span>Progress</span>
-                            <span>
-                              {task.type ==="game" && gameCompleted ? 1 : task.completed}/{task.total}
-                            </span>
-                          </div>
-                          <Progress value={(task.type ==="game" && gameCompleted ? 100 : (task.completed / task.total) * 100)} className="h-1.5 bg-white/10" />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-            <TabsContent value="weekly" className="mt-4 space-y-3">
-              {weeklyTasks.map((task) => (
-                <Card key={task.id} className="border-none shadow-md bg-white/10 backdrop-blur-md">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`${task.iconBg} p-2 rounded-full mt-1`}>{task.icon}</div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-white">{task.title}</h3>
-                            <p className="text-xs text-white/70 mt-1">{task.description}</p>
-                          </div>
-                          <Badge className="bg-amber-500/90">+{task.points} XP</Badge>
-                        </div>
-                        <div className="mt-3">
-                          <div className="flex justify-between text-xs text-white/70 mb-1">
-                            <span>Progress</span>
-                            <span>
-                              {task.completed}/{task.total}
-                            </span>
-                          </div>
-                          <Progress value={(task.completed / task.total) * 100} className="h-1.5 bg-white/10" />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-            {/* <TabsContent value="community" className="mt-4 space-y-3">
-              {communityTasks.map((task) => (
-                <Card key={task.id} className="border-none shadow-md bg-white/10 backdrop-blur-md">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`${task.iconBg} p-2 rounded-full mt-1`}>{task.icon}</div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-white">{task.title}</h3>
-                            <p className="text-xs text-white/70 mt-1">{task.description}</p>
-                          </div>
-                          <Badge className="bg-amber-500/90">+{task.points} XP</Badge>
-                        </div>
-                        <div className="mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-white/20 text-white hover:bg-white/10"
-                            onClick={() => completeTask(task.id)}
-                          >
-                            Complete Task
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent> */}
-            <TabsContent value="achievements" className="mt-4 space-y-3">
-              {achievements.map((task) => (
-                <Card key={task.id} className="border-none shadow-md bg-white/10 backdrop-blur-md">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`${task.iconBg} p-2 rounded-full mt-1`}>{task.icon}</div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-white">{task.title}</h3>
-                            <p className="text-xs text-white/70 mt-1">{task.description}</p>
-                          </div>
-                          <Badge className="bg-amber-500/90">+{task.points} XP</Badge>
-                        </div>
-                        <div className="mt-3">
-                          <div className="flex justify-between text-xs text-white/70 mb-1">
-                            <span>Progress</span>
-                            <span>
-                              {task.completed}/{task.total}
-                            </span>
-                          </div>
-                          <Progress value={(task.completed / task.total) * 100} className="h-1.5 bg-white/10" />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-            <TabsContent value={filterType} className="mt-4 space-y-3">
-              {filterTasks.map(([taskId,task]) => (
-                <Card key={task.id} className="border-none shadow-md bg-white/10 backdrop-blur-md">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`${task.iconBg} p-2 rounded-full mt-1`}>{task.icon}</div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-white">{task.title}</h3>
-                            <p className="text-xs text-white/70 mt-1">{task.description}{userTasks[taskId] === true ? <span id={`verified-${taskId}` }className=" text-white bg-green-500 p-1 ml-1 rounded">Verified✅</span>:<> </>}</p>
-                            {clicked.watch[taskId] ?<div className="flex " id={`verifyblock-${taskId}`}>
-                              <input type="text" value={verify} placeholder="Verify Code"  onChange={(e)=>setVerify(e.target.value)} className=" bg-gray-200 h-5  p-1 rounded bg-gray-200 text-black w-20 text-sm"/>
-                              <button className="ml-2 text-sm h-5 w-10 bg-violet-500 text-white rounded" onClick={() => handleVerification(task,taskId)}> Verify</button></div>:<></>}
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Badge className="bg-amber-500/90">+{task.points} XP</Badge>
-                             {userTasks[taskId]? <></>: <button className="rounded bg-violet-500 hover:bg-violet-700 text-white text-sm px-2 py-1 " id={`clickBtn${taskId}`} onClick={()=>handleTitle(task,taskId)}>{ userTasks[taskId] === false ? "Claim":buttonText[taskId]|| "Start Task"}</button>}
-                            
-                            
-                          </div>
-                          
-                        </div>
-                        <div className="mt-3">
-                          <div className="flex justify-between text-xs text-white/70 mb-1">
-                            <span>Progress</span>
-                            <span>
-                              {task.completed}/{task.total}
-                            </span>
-                          </div>
-                          <Progress value={(userTasks[taskId] === true ? 1:task.completed / task.total) * 100} className="h-1.5 bg-white/10" />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-            
-
-
-
-          </Tabs>
-        </main>
+          <div className="mt-4">
+            <TabsContent value="all">{renderTasksByTab("all")}</TabsContent>
+            <TabsContent value="daily">{renderTasksByTab("daily")}</TabsContent>
+            <TabsContent value="weekly">{renderTasksByTab("weekly")}</TabsContent>
+            <TabsContent value="achievements">{renderTasksByTab("achievements")}</TabsContent>
+            <TabsContent value="watch">{renderTasksByTab("watch")}</TabsContent>
+            <TabsContent value="social">{renderTasksByTab("social")}</TabsContent>
+            <TabsContent value="partnership">{renderTasksByTab("partnership")}</TabsContent>
+            <TabsContent value="misc">{renderTasksByTab("misc")}</TabsContent>
+          </div>
+        </Tabs>
       </div>
     </div>
-  )
+  );
 }
