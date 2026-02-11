@@ -15,9 +15,9 @@ export const ReferralProvider = ({ children }) => {
   const [referrerName, setReferrerName] = useState("");
   const [hasProcessed, setHasProcessed] = useState(false);
 
-  /* =================================================
-     1️⃣ STORE REFERRAL FROM URL (?ref=123)
-  ================================================= */
+  /* ===============================
+     1️⃣ STORE REF FROM URL
+  =============================== */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const refId = params.get("ref");
@@ -27,16 +27,15 @@ export const ReferralProvider = ({ children }) => {
     }
   }, []);
 
-  /* =================================================
-     2️⃣ DETECT & PROCESS STORED REFERRAL
-  ================================================= */
+  /* ===============================
+     2️⃣ PROCESS REFERRAL
+  =============================== */
   useEffect(() => {
     if (!user?.id || hasProcessed) return;
 
     const storedReferral = localStorage.getItem("pending_referral");
     if (!storedReferral) return;
 
-    // Prevent self referral
     if (storedReferral === String(user.id)) {
       localStorage.removeItem("pending_referral");
       return;
@@ -47,7 +46,6 @@ export const ReferralProvider = ({ children }) => {
         const referredCheckRef = ref(database, `users/${user.id}/referredBy`);
         const referredSnap = await get(referredCheckRef);
 
-        // If already referred before → stop
         if (referredSnap.exists()) {
           localStorage.removeItem("pending_referral");
           return;
@@ -65,9 +63,9 @@ export const ReferralProvider = ({ children }) => {
 
   }, [user?.id]);
 
-  /* =================================================
-     3️⃣ PROCESS REFERRAL
-  ================================================= */
+  /* ===============================
+     3️⃣ MAIN REFERRAL LOGIC
+  =============================== */
   const processReferral = async (referrerId, referredId) => {
     try {
       setHasProcessed(true);
@@ -75,66 +73,72 @@ export const ReferralProvider = ({ children }) => {
       const referrerRef = ref(database, `users/${referrerId}`);
       const referrerSnap = await get(referrerRef);
 
-      if (!referrerSnap.exists()) {
-        console.log("Referrer not found.");
-        return;
-      }
+      if (!referrerSnap.exists()) return;
+
+      const referredRef = ref(database, `users/${referredId}`);
+      const referredSnap = await get(referredRef);
 
       const rData = referrerSnap.val();
+      const referredData = referredSnap.val() || {};
+
       const rName = rData.name || "A Friend";
       const now = Date.now();
 
+      const referrerScore = rData.Score || {};
+      const referredScore = referredData.Score || {};
+
       const updates = {};
 
-      // --- Reward Joining User (+50) ---
+      /* --- Update referredBy for new user --- */
       updates[`users/${referredId}/referredBy`] = {
         id: referrerId,
         name: rName,
         at: now
       };
 
-      updates[`users/${referredId}/Score/network_score`] = 50;
-      updates[`users/${referredId}/Score/total_score`] = 50;
+      /* --- Add 50 XP to referred user --- */
+      updates[`users/${referredId}/Score/network_score`] =
+        (referredScore.network_score || 0) + 50;
 
-      // --- Reward Referrer (+100) ---
+      updates[`users/${referredId}/Score/total_score`] =
+        (referredScore.total_score || 0) + 50;
+
+      /* --- Add 100 XP to referrer --- */
       updates[`users/${referrerId}/referrals/${referredId}`] = {
         id: referredId,
         name: user.username || "Friend",
         referredAt: now
       };
 
-      const rScore = rData.Score || {};
       updates[`users/${referrerId}/Score/network_score`] =
-        (rScore.network_score || 0) + 100;
+        (referrerScore.network_score || 0) + 100;
 
       updates[`users/${referrerId}/Score/total_score`] =
-        (rScore.total_score || 0) + 100;
+        (referrerScore.total_score || 0) + 100;
 
       await update(ref(database), updates);
 
       setReferrerName(rName);
       setShowWelcomePopup(true);
 
-      console.log("Referral processed successfully.");
+      console.log("Referral processed successfully");
 
     } catch (err) {
       console.error("Referral error:", err);
     }
   };
 
-  /* =================================================
-     4️⃣ GENERATE INVITE LINK (NEW SYSTEM)
-  ================================================= */
+  /* ===============================
+     4️⃣ GENERATE INVITE LINK
+  =============================== */
   useEffect(() => {
     if (!user?.id) return;
-
     setInviteLink(`${window.location.origin}/?ref=${user.id}`);
-
   }, [user?.id]);
 
-  /* =================================================
+  /* ===============================
      5️⃣ LOAD MY REFERRALS
-  ================================================= */
+  =============================== */
   useEffect(() => {
     if (!user?.id) return;
 
@@ -157,9 +161,9 @@ export const ReferralProvider = ({ children }) => {
 
   }, [user?.id]);
 
-  /* =================================================
+  /* ===============================
      SHARE HELPERS
-  ================================================= */
+  =============================== */
   const shareToTelegram = () => {
     window.open(
       `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}`,
