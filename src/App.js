@@ -42,15 +42,13 @@ function AdminNavbar() {
       <div className="header-actions">
         <Link
           to="/admintask"
-          className={`admin-nav-btn ${location.pathname === "/admintask" ? "active" : "secondary"
-            }`}
+          className={`admin-nav-btn ${location.pathname === "/admintask" ? "active" : "secondary"}`}
         >
           Admin Task
         </Link>
         <Link
           to="/adminNews"
-          className={`admin-nav-btn ${location.pathname === "/adminNews" ? "active" : "secondary"
-            }`}
+          className={`admin-nav-btn ${location.pathname === "/adminNews" ? "active" : "secondary"}`}
         >
           Admin News
         </Link>
@@ -73,32 +71,7 @@ function App() {
   } = useStreak() || {};
 
   /* ===========================================
-     1️⃣ HANDLE REFERRAL REDIRECT FROM BROWSER
-  ============================================ */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const refId = params.get("ref");
-
-    if (!refId) return;
-
-    // Store referral
-    localStorage.setItem("pending_referral", refId);
-
-    // If NOT inside Telegram → redirect
-    const isInsideTelegram =
-      window.Telegram?.WebApp?.initDataUnsafe?.user;
-
-    if (!isInsideTelegram) {
-      const botUsername = process.env.REACT_APP_BOT_USERNAME;
-
-      if (botUsername) {
-        window.location.href = `https://t.me/${botUsername}/app`;
-      }
-    }
-  }, []);
-
-  /* ===========================================
-     2️⃣ TELEGRAM INITIALIZATION
+     1️⃣ TELEGRAM INITIALIZATION
   ============================================ */
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -121,7 +94,7 @@ function App() {
   }, []);
 
   /* ===========================================
-     3️⃣ RESET TASKS
+     2️⃣ RESET TASKS
   ============================================ */
   useEffect(() => {
     if (user?.id) {
