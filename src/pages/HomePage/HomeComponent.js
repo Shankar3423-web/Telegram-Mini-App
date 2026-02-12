@@ -502,7 +502,6 @@ import {
   Wallet,
   CheckSquare,
   ChevronRight,
-  Bug,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -520,14 +519,13 @@ import { database } from "../../services/FirebaseConfig";
 export default function HomeComponent() {
   const navigate = useNavigate();
   const { user, scores } = useTelegram();
-  const { showWelcomePopup, setShowWelcomePopup, debugLog } = useReferral();
+  const { showWelcomePopup, setShowWelcomePopup } = useReferral();
   const { farmingState } = useFarming();
 
   const { currentStreak } = useStreak();
 
   const [dailyTasksPreview, setDailyTasksPreview] = useState([]);
   const [topNews, setTopNews] = useState(null);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Fetch dynamic news for Top Story
   useEffect(() => {
@@ -746,14 +744,7 @@ export default function HomeComponent() {
               <div className="flex items-center gap-3">
                 <span className="text-white text-md">🔥{currentStreak}</span>
 
-                <Button
-                  onClick={() => setShowDebugPanel(!showDebugPanel)}
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full text-white hover:bg-white/10"
-                >
-                  <Bug className="h-5 w-5" />
-                </Button>
+
 
                 <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-white/10">
                   <Bell className="h-5 w-5" />
@@ -959,28 +950,7 @@ export default function HomeComponent() {
           </main>
         </div>
       </div>
-      {/* 🔥 REFERRAL DEBUG PANEL */}
-      {showDebugPanel && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            maxHeight: "200px",
-            overflowY: "auto",
-            backgroundColor: "black",
-            color: "lime",
-            fontSize: "10px",
-            padding: "6px",
-            zIndex: 99999
-          }}
-        >
-          {debugLog?.map((log, index) => (
-            <div key={index}>{log}</div>
-          ))}
-        </div>
-      )}
+
 
       {showWelcomePopup && (
         <WelcomePopup onClose={() => setShowWelcomePopup(false)} />

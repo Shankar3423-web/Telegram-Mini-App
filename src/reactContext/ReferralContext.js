@@ -16,12 +16,6 @@ export const ReferralProvider = ({ children }) => {
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [referrerName, setReferrerName] = useState("");
   const [hasProcessed, setHasProcessed] = useState(false);
-  const [debugLog, setDebugLog] = useState([]);
-
-  const log = (msg) => {
-    console.log("REFERRAL DEBUG:", msg); // still prints in browser console
-    setDebugLog((prev) => [...prev, msg]);
-  };
 
   /* =================================================
      1️⃣ GENERATE SESSION-BASED INVITE LINK
@@ -44,7 +38,6 @@ export const ReferralProvider = ({ children }) => {
         setInviteLink(
           `https://t.me/${BOT_USERNAME}?startapp=${sessionId}`
         );
-        log("Generated Link: https://t.me/" + BOT_USERNAME + "?startapp=" + sessionId);
       } catch (err) {
         console.error("Session generation error:", err);
       }
@@ -57,99 +50,54 @@ export const ReferralProvider = ({ children }) => {
      2️⃣ DETECT SESSION TOKEN & PROCESS REFERRAL
   ================================================= */
   useEffect(() => {
-    log("Referral effect triggered");
-
     // 💡 RELAXED GUARD: We only stop if we've already done it in this specific session
-    if (hasProcessed) {
-      log("Referral already processed in this session");
-      return;
-    }
+    if (hasProcessed) return;
 
     const tg = window.Telegram?.WebApp;
-    if (!tg) {
-      log("Telegram WebApp not found");
-      return;
-    }
+    if (!tg) return;
 
     // Try multiple ways to get the user ID if the hook is slow
     const currentUser = user?.id || tg.initDataUnsafe?.user?.id;
-    if (!currentUser) {
-      log("User ID not available (waiting...)");
-      return;
-    }
+    if (!currentUser) return;
 
     const startParam = tg.initDataUnsafe?.start_param ||
       new URLSearchParams(window.location.hash.substring(1)).get('tgWebAppStartParam');
 
-    log("Start param: " + (startParam || "NULL"));
-
-    if (!startParam) {
-      log("No start_param found in TG data or URL");
-      return;
-    }
-
-    if (!startParam.startsWith("ref_")) {
-      log("Invalid start_param format");
-      return;
-    }
+    if (!startParam || !startParam.startsWith("ref_")) return;
 
     const processReferral = async () => {
       try {
-        log("Checking session in DB");
         const sessionRef = ref(database, `referralSessions/${startParam}`);
         const sessionSnap = await get(sessionRef);
 
-        if (!sessionSnap.exists()) {
-          log("Session does NOT exist");
-          return;
-        }
+        if (!sessionSnap.exists()) return;
 
         const session = sessionSnap.val();
-        log(`Session found for referrer: ${session.referrerId}`);
 
         // 🔒 Validations
-        if (session.used) {
-          log("Session already used");
-          return;
-        }
-        if (session.expiresAt < Date.now()) {
-          log("Session expired");
-          return;
-        }
-        if (session.referrerId === String(currentUser)) {
-          log("Self referral detected");
-          return;
-        }
+        if (session.used) return;
+        if (session.expiresAt < Date.now()) return;
+        if (session.referrerId === String(currentUser)) return;
 
         const userRef = ref(database, `users/${currentUser}`);
         let userSnap = await get(userRef);
 
         if (userSnap.exists() && userSnap.val().referredBy) {
-          log("User already processed referral previously.");
           setHasProcessed(true);
           return;
         }
 
         if (!userSnap.exists() || !userSnap.val()?.Score) {
-          log("Waiting for user initialization...");
           // Wait longer to ensure initializeUser and its Score update complete
           await new Promise((r) => setTimeout(r, 1500));
           userSnap = await get(userRef);
-          if (!userSnap.exists() || !userSnap.val()?.Score) {
-            log("User initialization incomplete. Skipping referral.");
-            return;
-          }
+          if (!userSnap.exists() || !userSnap.val()?.Score) return;
         }
 
         // 🔁 Ensure referrer exists
         const referrerRef = ref(database, `users/${session.referrerId}`);
         const referrerSnap = await get(referrerRef);
-        if (!referrerSnap.exists()) {
-          log("Referrer user not found in DB");
-          return;
-        }
-
-        log("All checks passed — processing referral");
+        if (!referrerSnap.exists()) return;
 
         const referrerData = referrerSnap.val();
         const userData = userSnap.val();
@@ -185,10 +133,8 @@ export const ReferralProvider = ({ children }) => {
         setReferrerName(session.referrerName);
         setShowWelcomePopup(true);
         setHasProcessed(true);
-        log("Referral successfully processed");
 
       } catch (err) {
-        log("Process Error: " + err.message);
         console.error("Referral processing error:", err);
       }
     };
@@ -261,8 +207,7 @@ export const ReferralProvider = ({ children }) => {
         copyToClipboard,
         showWelcomePopup,
         setShowWelcomePopup,
-        referrerName,
-        debugLog
+        referrerName
       }}
     >
       {children}
