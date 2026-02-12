@@ -16,6 +16,12 @@ export const ReferralProvider = ({ children }) => {
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [referrerName, setReferrerName] = useState("");
   const [hasProcessed, setHasProcessed] = useState(false);
+  const [debugLog, setDebugLog] = useState([]);
+
+  const log = (msg) => {
+    console.log("REFERRAL DEBUG:", msg); // still prints in browser console
+    setDebugLog((prev) => [...prev, msg]);
+  };
 
   /* =================================================
      1️⃣ GENERATE SESSION-BASED INVITE LINK
@@ -50,43 +56,85 @@ export const ReferralProvider = ({ children }) => {
      2️⃣ DETECT SESSION TOKEN & PROCESS REFERRAL
   ================================================= */
   useEffect(() => {
-    if (!user?.id || hasProcessed) return;
+    log("Referral effect triggered");
+    if (!user?.id) {
+      log("User ID not available");
+      return;
+    }
+    if (hasProcessed) {
+      log("Referral already processed");
+      return;
+    }
 
     const tg = window.Telegram?.WebApp;
-    if (!tg) return;
+    if (!tg) {
+      log("Telegram WebApp not found");
+      return;
+    }
 
     const startParam = tg.initDataUnsafe?.start_param;
-    if (!startParam || !startParam.startsWith("ref_")) return;
+    log("Start param: " + startParam);
+    if (!startParam) {
+      log("No start_param received");
+      return;
+    }
+    if (!startParam.startsWith("ref_")) {
+      log("Invalid start_param format");
+      return;
+    }
 
     const processReferral = async () => {
       try {
+        log("Checking session in DB");
         const sessionRef = ref(database, `referralSessions/${startParam}`);
         const sessionSnap = await get(sessionRef);
 
-        if (!sessionSnap.exists()) return;
+        if (!sessionSnap.exists()) {
+          log("Session does NOT exist");
+          return;
+        }
 
+        log("Session found");
         const session = sessionSnap.val();
 
         // 🔒 Basic validation
-        if (session.used) return;
-        if (session.expiresAt < Date.now()) return;
-        if (session.referrerId === String(user.id)) return;
+        if (session.used) {
+          log("Session already used");
+          return;
+        }
+        if (session.expiresAt < Date.now()) {
+          log("Session expired");
+          return;
+        }
+        if (session.referrerId === String(user.id)) {
+          log("Self referral detected");
+          return;
+        }
 
         // 🔁 Ensure current user exists (wait if needed)
         const referredRef = ref(database, `users/${user.id}`);
         let referredSnap = await get(referredRef);
 
         if (!referredSnap.exists()) {
+          log("Referred user not yet created");
           // Wait briefly for initializeUser to complete
           await new Promise((resolve) => setTimeout(resolve, 500));
           referredSnap = await get(referredRef);
-          if (!referredSnap.exists()) return;
+          if (!referredSnap.exists()) {
+            log("Referred user still not found after wait");
+            return;
+          }
         }
 
         // 🔁 Ensure referrer exists
         const referrerRef = ref(database, `users/${session.referrerId}`);
         const referrerSnap = await get(referrerRef);
-        if (!referrerSnap.exists()) return;
+        if (!referrerSnap.exists()) {
+          log("Referrer user not found in DB");
+          return;
+        }
+
+        log("All checks passed — processing referral");
 
         const referrerData = referrerSnap.val();
         const referredData = referredSnap.val();
@@ -131,7 +179,7 @@ export const ReferralProvider = ({ children }) => {
         setShowWelcomePopup(true);
         setHasProcessed(true);
 
-        console.log("Referral processed successfully.");
+        log("Referral successfully processed");
 
       } catch (err) {
         console.error("Referral processing error:", err);
@@ -207,7 +255,8 @@ export const ReferralProvider = ({ children }) => {
         copyToClipboard,
         showWelcomePopup,
         setShowWelcomePopup,
-        referrerName
+        referrerName,
+        debugLog
       }}
     >
       {children}

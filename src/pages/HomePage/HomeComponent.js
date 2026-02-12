@@ -519,7 +519,7 @@ import { database } from "../../services/FirebaseConfig";
 export default function HomeComponent() {
   const navigate = useNavigate();
   const { user, scores } = useTelegram();
-  const { showWelcomePopup, setShowWelcomePopup } = useReferral();
+  const { showWelcomePopup, setShowWelcomePopup, debugLog } = useReferral();
   const { farmingState } = useFarming();
 
   const { currentStreak } = useStreak();
@@ -948,6 +948,27 @@ export default function HomeComponent() {
           </main>
         </div>
       </div>
+      {/* 🔥 REFERRAL DEBUG PANEL */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          maxHeight: "200px",
+          overflowY: "auto",
+          backgroundColor: "black",
+          color: "lime",
+          fontSize: "10px",
+          padding: "6px",
+          zIndex: 99999
+        }}
+      >
+        {debugLog?.map((log, index) => (
+          <div key={index}>{log}</div>
+        ))}
+      </div>
+
       {showWelcomePopup && (
         <WelcomePopup onClose={() => setShowWelcomePopup(false)} />
       )}
