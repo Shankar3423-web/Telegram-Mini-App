@@ -778,7 +778,7 @@ export default function HomeComponent() {
                 <img
                   src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/StockCake-Fruity%20Happy%20Circle_1742209424.jpg-HIDkJRxCsrVVodGCKHf1HnZMv7JJsK.jpeg"
                   alt="Fruit Ninja Game"
-                  className="w-full h-60 object-cover rounded"
+                  className="w-full h-60 object-contain bg-white rounded"
                 />
                 <Badge className="absolute top-3 left-3 bg-rose-600 text-gray-100 rounded px-1 py-1">Game</Badge>
                 <Badge className="absolute top-3 right-3 bg-amber-500/90 text-gray-100 rounded px-1 py-1">+50 XP</Badge>
