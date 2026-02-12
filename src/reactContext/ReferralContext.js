@@ -44,6 +44,7 @@ export const ReferralProvider = ({ children }) => {
         setInviteLink(
           `https://t.me/${BOT_USERNAME}/app?startapp=${sessionId}`
         );
+        log("Generated Link: .../app?startapp=" + sessionId);
       } catch (err) {
         console.error("Session generation error:", err);
       }
@@ -77,11 +78,13 @@ export const ReferralProvider = ({ children }) => {
       return;
     }
 
-    const startParam = tg.initDataUnsafe?.start_param;
-    log("Start param: " + startParam);
+    const startParam = tg.initDataUnsafe?.start_param ||
+      new URLSearchParams(window.location.hash.substring(1)).get('tgWebAppStartParam');
+
+    log("Start param: " + (startParam || "NULL"));
 
     if (!startParam) {
-      log("No start_param received");
+      log("No start_param found in TG data or URL");
       return;
     }
 
