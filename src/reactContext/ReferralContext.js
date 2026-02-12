@@ -44,7 +44,7 @@ export const ReferralProvider = ({ children }) => {
         setInviteLink(
           `https://t.me/${BOT_USERNAME}/app?startapp=${sessionId}`
         );
-        log("Generated Link: .../app?startapp=" + sessionId);
+        log("Generated Link: https://t.me/" + BOT_USERNAME + "/app?startapp=" + sessionId);
       } catch (err) {
         console.error("Session generation error:", err);
       }
