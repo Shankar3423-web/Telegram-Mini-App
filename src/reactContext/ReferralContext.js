@@ -177,6 +177,16 @@ export const ReferralProvider = ({ children }) => {
     );
   };
 
+  const shareToWhatsApp = () => {
+    const text = `Join me on this awesome app and earn rewards! ${inviteLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const shareToTwitter = () => {
+    const text = `Join me on this awesome app and earn rewards! ${inviteLink}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -192,6 +202,8 @@ export const ReferralProvider = ({ children }) => {
         inviteLink,
         invitedFriends,
         shareToTelegram,
+        shareToWhatsApp,
+        shareToTwitter,
         copyToClipboard,
         showWelcomePopup,
         setShowWelcomePopup,
