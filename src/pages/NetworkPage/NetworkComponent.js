@@ -131,7 +131,7 @@ export default function NetworkComponent() {
         const leaderboardData = Object.keys(usersData)
           .map((uid) => ({
             id: uid,
-            name: usersData[uid].name,
+            name: usersData[uid].meta?.name || "Unknown",
             highest: Math.floor(usersData[uid].Score?.game_highest_score || 0),
             total: Math.floor(usersData[uid].Score?.total_score || 0),
           }))
@@ -208,7 +208,7 @@ export default function NetworkComponent() {
                     </Avatar>
                     <div className="bg-indigo-500/20 px-3 py-1 rounded-full text-white flex items-center">
                       <Zap className="h-4 w-4 text-amber-300 fill-amber-300 mr-1" />
-                      <span className="font-bold">+50 XP</span> {/* 👈 YOU get 50 */}
+                      <span className="font-bold">+100 XP</span> {/* 👈 YOU get 100 */}
                     </div>
                   </div>
                   <div className="text-white opacity-70">
@@ -220,7 +220,7 @@ export default function NetworkComponent() {
                     </Avatar>
                     <div className="bg-pink-500/20 px-3 py-1 rounded-full text-white flex items-center">
                       <Zap className="h-4 w-4 text-amber-300 fill-amber-300 mr-1" />
-                      <span className="font-bold">+100 XP</span> {/* 👈 FRIEND gets 100 */}
+                      <span className="font-bold">+50 XP</span> {/* 👈 FRIEND gets 50 */}
                     </div>
                   </div>
                 </div>

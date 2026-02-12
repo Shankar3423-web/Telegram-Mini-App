@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useTelegram } from "./TelegramContext";
 import { database } from "../services/FirebaseConfig";
-import { ref, get, update, onValue, off } from "firebase/database";
+import { ref, get, update, onValue, off, set } from "firebase/database";
 
 const ReferralContext = createContext();
 export const useReferral = () => useContext(ReferralContext);
@@ -18,7 +18,36 @@ export const ReferralProvider = ({ children }) => {
   const [hasProcessed, setHasProcessed] = useState(false);
 
   /* =================================================
-     1️⃣ DETECT TELEGRAM START PARAM
+     1️⃣ GENERATE SESSION-BASED INVITE LINK
+  ================================================= */
+  useEffect(() => {
+    if (!user?.id || !BOT_USERNAME) return;
+
+    const generateSession = async () => {
+      try {
+        const sessionId =
+          "ref_" + Math.random().toString(36).substring(2, 12);
+
+        await set(ref(database, `referralSessions/${sessionId}`), {
+          referrerId: String(user.id),
+          referrerName: user.username || user.first_name || "Friend",
+          used: false,
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000
+        });
+
+        setInviteLink(
+          `https://t.me/${BOT_USERNAME}/app?startapp=${sessionId}`
+        );
+      } catch (err) {
+        console.error("Session generation error:", err);
+      }
+    };
+
+    generateSession();
+  }, [user?.id]);
+
+  /* =================================================
+     2️⃣ DETECT SESSION TOKEN & PROCESS REFERRAL
   ================================================= */
   useEffect(() => {
     if (!user?.id || hasProcessed) return;
@@ -27,112 +56,94 @@ export const ReferralProvider = ({ children }) => {
     if (!tg) return;
 
     const startParam = tg.initDataUnsafe?.start_param;
-
     if (!startParam || !startParam.startsWith("ref_")) return;
 
-    const referrerId = startParam.split("_")[1];
-
-    // Block self referral
-    if (!referrerId || referrerId === String(user.id)) return;
-
-    const checkAndProcess = async () => {
+    const processReferral = async () => {
       try {
-        const referredCheckRef = ref(database, `users/${user.id}/referredBy`);
-        const referredSnap = await get(referredCheckRef);
+        const sessionRef = ref(database, `referralSessions/${startParam}`);
+        const sessionSnap = await get(sessionRef);
 
-        // Only process if referredBy does NOT exist
+        if (!sessionSnap.exists()) return;
+
+        const session = sessionSnap.val();
+
+        // 🔒 Basic validation
+        if (session.used) return;
+        if (session.expiresAt < Date.now()) return;
+        if (session.referrerId === String(user.id)) return;
+
+        // 🔁 Ensure current user exists (wait if needed)
+        const referredRef = ref(database, `users/${user.id}`);
+        let referredSnap = await get(referredRef);
+
         if (!referredSnap.exists()) {
-          await processReferral(referrerId, String(user.id));
+          // Wait briefly for initializeUser to complete
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          referredSnap = await get(referredRef);
+          if (!referredSnap.exists()) return;
         }
 
+        // 🔁 Ensure referrer exists
+        const referrerRef = ref(database, `users/${session.referrerId}`);
+        const referrerSnap = await get(referrerRef);
+        if (!referrerSnap.exists()) return;
+
+        const referrerData = referrerSnap.val();
+        const referredData = referredSnap.val();
+
+        const referrerScore = referrerData.Score || {};
+        const referredScore = referredData.Score || {};
+
+        const now = Date.now();
+
+        const updates = {};
+
+        /* ---- Add referredBy under current user ---- */
+        updates[`users/${user.id}/referredBy`] = {
+          id: session.referrerId,
+          name: session.referrerName,
+          at: now
+        };
+
+        /* ---- Add under referrer referrals ---- */
+        updates[`users/${session.referrerId}/referrals/${user.id}`] = {
+          id: String(user.id),
+          name: user.username || user.first_name || "Friend",
+          referredAt: now
+        };
+
+        /* ---- XP Updates ---- */
+        updates[`users/${session.referrerId}/Score/network_score`] =
+          (referrerScore.network_score || 0) + 100;
+
+        updates[`users/${session.referrerId}/Score/total_score`] =
+          (referrerScore.total_score || 0) + 100;
+
+        updates[`users/${user.id}/Score/total_score`] =
+          (referredScore.total_score || 0) + 50;
+
+        /* ---- Mark session used ---- */
+        updates[`referralSessions/${startParam}/used`] = true;
+
+        await update(ref(database), updates);
+
+        setReferrerName(session.referrerName);
+        setShowWelcomePopup(true);
+        setHasProcessed(true);
+
+        console.log("Referral processed successfully.");
+
       } catch (err) {
-        console.error("Referral detection error:", err);
+        console.error("Referral processing error:", err);
       }
     };
 
-    checkAndProcess();
+    processReferral();
 
   }, [user?.id]);
 
   /* =================================================
-     2️⃣ PROCESS REFERRAL
-  ================================================= */
-  const processReferral = async (referrerId, referredId) => {
-    try {
-      setHasProcessed(true);
-
-      const referrerRef = ref(database, `users/${referrerId}`);
-      const referrerSnap = await get(referrerRef);
-      if (!referrerSnap.exists()) return;
-
-      const referredRef = ref(database, `users/${referredId}`);
-      const referredSnap = await get(referredRef);
-
-      const referrerData = referrerSnap.val();
-      const referredData = referredSnap.val() || {};
-
-      const referrerScore = referrerData.Score || {};
-      const referredScore = referredData.Score || {};
-
-      const now = Date.now();
-      const referrerDisplayName = referrerData.name || "A Friend";
-
-      const updates = {};
-
-      /* --- Save referredBy under new user --- */
-      updates[`users/${referredId}/referredBy`] = {
-        id: referrerId,
-        name: referrerDisplayName,
-        at: now
-      };
-
-      /* --- Add 50 XP to referred user (ADD, not overwrite) --- */
-      updates[`users/${referredId}/Score/network_score`] =
-        (referredScore.network_score || 0) + 50;
-
-      updates[`users/${referredId}/Score/total_score`] =
-        (referredScore.total_score || 0) + 50;
-
-      /* --- Add referral record under referrer --- */
-      updates[`users/${referrerId}/referrals/${referredId}`] = {
-        id: referredId,
-        name: user.username || referredData.name || "Friend",
-        referredAt: now
-      };
-
-      /* --- Add 100 XP to referrer (ADD, not overwrite) --- */
-      updates[`users/${referrerId}/Score/network_score`] =
-        (referrerScore.network_score || 0) + 100;
-
-      updates[`users/${referrerId}/Score/total_score`] =
-        (referrerScore.total_score || 0) + 100;
-
-      await update(ref(database), updates);
-
-      setReferrerName(referrerDisplayName);
-      setShowWelcomePopup(true);
-
-      console.log("Referral processed successfully");
-
-    } catch (err) {
-      console.error("Referral processing error:", err);
-    }
-  };
-
-  /* =================================================
-     3️⃣ GENERATE TELEGRAM INVITE LINK
-  ================================================= */
-  useEffect(() => {
-    if (!user?.id || !BOT_USERNAME) return;
-
-    setInviteLink(
-      `https://t.me/${BOT_USERNAME}/app?startapp=ref_${user.id}`
-    );
-
-  }, [user?.id]);
-
-  /* =================================================
-     4️⃣ LOAD MY REFERRALS
+     3️⃣ LOAD MY REFERRALS
   ================================================= */
   useEffect(() => {
     if (!user?.id) return;
@@ -166,20 +177,6 @@ export const ReferralProvider = ({ children }) => {
     );
   };
 
-  const shareToWhatsApp = () => {
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(inviteLink)}`,
-      "_blank"
-    );
-  };
-
-  const shareToTwitter = () => {
-    window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(inviteLink)}`,
-      "_blank"
-    );
-  };
-
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -195,8 +192,6 @@ export const ReferralProvider = ({ children }) => {
         inviteLink,
         invitedFriends,
         shareToTelegram,
-        shareToWhatsApp,
-        shareToTwitter,
         copyToClipboard,
         showWelcomePopup,
         setShowWelcomePopup,

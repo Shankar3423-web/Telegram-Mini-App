@@ -9,32 +9,35 @@ export const initializeUser = async (user) => {
 
   try {
     const snapshot = await get(userRef);
-    const userData = snapshot.val();
     const now = Date.now();
+    const todayUTC = new Date().toISOString().split("T")[0];
 
-    // 🟢 NON-DESTRUCTIVE INITIALIZATION
-    // We use 'update' so we don't overwrite referral data if it got there first
-    const baseProfile = {
-      name: user.username || user.first_name || "Anonymous",
+    // 🟢 NON-DESTRUCTIVE BASE META PROFILE
+    const baseMetaProfile = {
+      meta: {
+        name: user.username || user.first_name || "Anonymous",
+      },
       lastUpdated: now,
     };
 
+    // If user does NOT exist → initialize full base structure
     if (!snapshot.exists()) {
-      // New user: Set creation fields
-      baseProfile.createdAt = now;
-      baseProfile.lastPlayed = now;
-      baseProfile.lastReset = { daily: new Date().toISOString().split('T')[0] };
-      baseProfile.streak = {
+      baseMetaProfile.createdAt = now;
+      baseMetaProfile.lastPlayed = now;
+      baseMetaProfile.lastReset = {
+        daily: todayUTC,
+      };
+      baseMetaProfile.streak = {
         currentStreakCount: 1,
-        lastStreakCheckDateUTC: new Date().toISOString().split('T')[0],
-        longestStreakCount: 1
+        lastStreakCheckDateUTC: todayUTC,
+        longestStreakCount: 1,
       };
     }
 
-    // Always update name/lastUpdated
-    await update(userRef, baseProfile);
+    // 🟢 Update base profile safely (won’t overwrite referrals/referredBy)
+    await update(userRef, baseMetaProfile);
 
-    // Only set scores if they don't already exist
+    // 🟢 Initialize Score only if it doesn't exist
     const scoreRef = ref(database, `users/${userId}/Score`);
     const scoreSnap = await get(scoreRef);
 
@@ -47,14 +50,15 @@ export const initializeUser = async (user) => {
         news_score: 0,
         no_of_tickets: 3,
         task_score: 0,
-        total_score: 0
+        total_score: 0,
       });
+
       console.log("Default scores initialized for new user.");
     }
 
     return userId;
   } catch (error) {
-    console.error("Error during user init:", error);
+    console.error("Error during user initialization:", error);
     return null;
   }
 };
