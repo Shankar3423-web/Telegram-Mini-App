@@ -776,9 +776,9 @@ export default function HomeComponent() {
             <Card className="mb-8 rounded-2xl overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-md ">
               <div className="relative rounded">
                 <img
-                  src="https://images.unsplash.com/photo-1627850604058-52e40de1b8d7?auto=format&fit=crop&q=80&w=800"
+                  src="https://images.unsplash.com/photo-1550258114-68bd48e583ad?auto=format&fit=crop&q=80&w=800"
                   alt="Fruit Ninja Game"
-                  className="w-full h-60 object-contain bg-white rounded"
+                  className="w-full h-60 object-cover rounded"
                 />
                 <Badge className="absolute top-3 left-3 bg-rose-600 text-gray-100 rounded px-1 py-1">Game</Badge>
                 <Badge className="absolute top-3 right-3 bg-amber-500/90 text-gray-100 rounded px-1 py-1">+50 XP</Badge>
