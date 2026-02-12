@@ -131,11 +131,11 @@ export default function NetworkComponent() {
         const leaderboardData = Object.keys(usersData)
           .map((uid) => ({
             id: uid,
-            name: usersData[uid].meta?.name || "Unknown",
+            name: usersData[uid].meta?.name || usersData[uid].name || "User",
             highest: Math.floor(usersData[uid].Score?.game_highest_score || 0),
             total: Math.floor(usersData[uid].Score?.total_score || 0),
           }))
-          .filter((player) => player.name && player.name.trim() !== "" && player.name !== "Unknown");
+          .filter((player) => player.name && player.name.trim() !== "");
 
         setLeaderboardHighest([...leaderboardData].sort((a, b) => b.highest - a.highest));
         setLeaderboardTotal([...leaderboardData].sort((a, b) => b.total - a.total));
