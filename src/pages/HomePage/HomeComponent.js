@@ -776,7 +776,7 @@ export default function HomeComponent() {
             <Card className="mb-8 rounded-2xl overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-md ">
               <div className="relative rounded">
                 <img
-                  src="https://images.unsplash.com/photo-1610832309304-43c7143c7b91?auto=format&fit=crop&q=80&w=800"
+                  src="https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=800"
                   alt="Fruit Ninja Game"
                   className="w-full h-60 object-cover rounded"
                 />
