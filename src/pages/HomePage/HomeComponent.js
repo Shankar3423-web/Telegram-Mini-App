@@ -808,7 +808,7 @@ export default function HomeComponent() {
                   >
                     <div className="relative">
                       <img
-                        src={topNews.imageUrl || "https://i.postimg.cc/W109Bc3N/Fruit-Ninja-2.jpg"}
+                        src={topNews.imageUrl || "https://images.unsplash.com/photo-1585241936939-be4099591252?auto=format&fit=crop&q=80&w=800"}
                         alt={topNews.title}
                         className="w-full h-48 object-cover"
                       />
