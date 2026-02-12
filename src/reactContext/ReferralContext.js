@@ -118,22 +118,22 @@ export const ReferralProvider = ({ children }) => {
           return;
         }
 
-        // 🔁 Check if this specific user was ALREADY referred to avoid double points
         const userRef = ref(database, `users/${currentUser}`);
         let userSnap = await get(userRef);
 
         if (userSnap.exists() && userSnap.val().referredBy) {
-          log("User already has a referrer in DB");
+          log("User already processed referral previously.");
           setHasProcessed(true);
           return;
         }
 
-        if (!userSnap.exists()) {
-          log("User not initialized, waiting 1s...");
-          await new Promise((r) => setTimeout(r, 1000));
+        if (!userSnap.exists() || !userSnap.val()?.Score) {
+          log("Waiting for user initialization...");
+          // Wait longer to ensure initializeUser and its Score update complete
+          await new Promise((r) => setTimeout(r, 1500));
           userSnap = await get(userRef);
-          if (!userSnap.exists()) {
-            log("User still not found. Skipping referral processing.");
+          if (!userSnap.exists() || !userSnap.val()?.Score) {
+            log("User initialization incomplete. Skipping referral.");
             return;
           }
         }
