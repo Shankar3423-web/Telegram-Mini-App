@@ -57,12 +57,10 @@ export const ReferralProvider = ({ children }) => {
   ================================================= */
   useEffect(() => {
     log("Referral effect triggered");
-    if (!user?.id) {
-      log("User ID not available");
-      return;
-    }
+
+    // 💡 RELAXED GUARD: We only stop if we've already done it in this specific session
     if (hasProcessed) {
-      log("Referral already processed");
+      log("Referral already processed in this session");
       return;
     }
 
@@ -72,12 +70,21 @@ export const ReferralProvider = ({ children }) => {
       return;
     }
 
+    // Try multiple ways to get the user ID if the hook is slow
+    const currentUser = user?.id || tg.initDataUnsafe?.user?.id;
+    if (!currentUser) {
+      log("User ID not available (waiting...)");
+      return;
+    }
+
     const startParam = tg.initDataUnsafe?.start_param;
     log("Start param: " + startParam);
+
     if (!startParam) {
       log("No start_param received");
       return;
     }
+
     if (!startParam.startsWith("ref_")) {
       log("Invalid start_param format");
       return;
@@ -94,10 +101,10 @@ export const ReferralProvider = ({ children }) => {
           return;
         }
 
-        log("Session found");
         const session = sessionSnap.val();
+        log(`Session found for referrer: ${session.referrerId}`);
 
-        // 🔒 Basic validation
+        // 🔒 Validations
         if (session.used) {
           log("Session already used");
           return;
@@ -106,22 +113,27 @@ export const ReferralProvider = ({ children }) => {
           log("Session expired");
           return;
         }
-        if (session.referrerId === String(user.id)) {
+        if (session.referrerId === String(currentUser)) {
           log("Self referral detected");
           return;
         }
 
-        // 🔁 Ensure current user exists (wait if needed)
-        const referredRef = ref(database, `users/${user.id}`);
-        let referredSnap = await get(referredRef);
+        // 🔁 Check if this specific user was ALREADY referred to avoid double points
+        const userRef = ref(database, `users/${currentUser}`);
+        let userSnap = await get(userRef);
 
-        if (!referredSnap.exists()) {
-          log("Referred user not yet created");
-          // Wait briefly for initializeUser to complete
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          referredSnap = await get(referredRef);
-          if (!referredSnap.exists()) {
-            log("Referred user still not found after wait");
+        if (userSnap.exists() && userSnap.val().referredBy) {
+          log("User already has a referrer in DB");
+          setHasProcessed(true);
+          return;
+        }
+
+        if (!userSnap.exists()) {
+          log("User not initialized, waiting 1s...");
+          await new Promise((r) => setTimeout(r, 1000));
+          userSnap = await get(userRef);
+          if (!userSnap.exists()) {
+            log("User still not found. Skipping referral processing.");
             return;
           }
         }
@@ -137,38 +149,30 @@ export const ReferralProvider = ({ children }) => {
         log("All checks passed — processing referral");
 
         const referrerData = referrerSnap.val();
-        const referredData = referredSnap.val();
-
+        const userData = userSnap.val();
         const referrerScore = referrerData.Score || {};
-        const referredScore = referredData.Score || {};
-
+        const userScore = userData.Score || {};
         const now = Date.now();
-
         const updates = {};
 
         /* ---- Add referredBy under current user ---- */
-        updates[`users/${user.id}/referredBy`] = {
+        updates[`users/${currentUser}/referredBy`] = {
           id: session.referrerId,
           name: session.referrerName,
           at: now
         };
 
         /* ---- Add under referrer referrals ---- */
-        updates[`users/${session.referrerId}/referrals/${user.id}`] = {
-          id: String(user.id),
-          name: user.username || user.first_name || "Friend",
+        updates[`users/${session.referrerId}/referrals/${currentUser}`] = {
+          id: String(currentUser),
+          name: tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Friend",
           referredAt: now
         };
 
         /* ---- XP Updates ---- */
-        updates[`users/${session.referrerId}/Score/network_score`] =
-          (referrerScore.network_score || 0) + 100;
-
-        updates[`users/${session.referrerId}/Score/total_score`] =
-          (referrerScore.total_score || 0) + 100;
-
-        updates[`users/${user.id}/Score/total_score`] =
-          (referredScore.total_score || 0) + 50;
+        updates[`users/${session.referrerId}/Score/network_score`] = (referrerScore.network_score || 0) + 100;
+        updates[`users/${session.referrerId}/Score/total_score`] = (referrerScore.total_score || 0) + 100;
+        updates[`users/${currentUser}/Score/total_score`] = (userScore.total_score || 0) + 50;
 
         /* ---- Mark session used ---- */
         updates[`referralSessions/${startParam}/used`] = true;
@@ -178,17 +182,16 @@ export const ReferralProvider = ({ children }) => {
         setReferrerName(session.referrerName);
         setShowWelcomePopup(true);
         setHasProcessed(true);
-
         log("Referral successfully processed");
 
       } catch (err) {
+        log("Process Error: " + err.message);
         console.error("Referral processing error:", err);
       }
     };
 
     processReferral();
-
-  }, [user?.id]);
+  }, [user?.id, hasProcessed]);
 
   /* =================================================
      3️⃣ LOAD MY REFERRALS
