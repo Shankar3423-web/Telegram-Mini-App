@@ -42,7 +42,7 @@ export const ReferralProvider = ({ children }) => {
         });
 
         setInviteLink(
-          `https://t.me/${BOT_USERNAME}?start=${sessionId}`
+          `https://t.me/${BOT_USERNAME}/app?startapp=${sessionId}`
         );
       } catch (err) {
         console.error("Session generation error:", err);
