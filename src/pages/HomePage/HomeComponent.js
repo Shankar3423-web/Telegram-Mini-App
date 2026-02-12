@@ -489,6 +489,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTelegram } from "../../reactContext/TelegramContext.js";
+import fruits from "../../images/fruits.png";
 
 
 import {
@@ -776,7 +777,7 @@ export default function HomeComponent() {
             <Card className="mb-8 rounded-2xl overflow-hidden border-none shadow-lg bg-white/10 backdrop-blur-md ">
               <div className="relative rounded">
                 <img
-                  src="https://images.unsplash.com/photo-1490818384931-1272b51cc7da?auto=format&fit=crop&q=80&w=800"
+                  src={fruits}
                   alt="Fruit Ninja Game"
                   className="w-full h-60 object-cover rounded"
                 />
