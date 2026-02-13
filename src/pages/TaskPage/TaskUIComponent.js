@@ -310,14 +310,14 @@ export default function TasksPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="tabs-list-premium">
-            <TabsTrigger value="daily">Daily</TabsTrigger>
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="watch">Watch</TabsTrigger>
-            <TabsTrigger value="social">Social</TabsTrigger>
-            <TabsTrigger value="partnership">Partnership</TabsTrigger>
-            <TabsTrigger value="misc">Misc</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="daily">Daily</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="weekly">Weekly</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="all">All</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="watch">Watch</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="social">Social</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="partnership">Partnership</TabsTrigger>
+            <TabsTrigger className="tabs-trigger-premium" value="misc">Misc</TabsTrigger>
           </TabsList>
 
           <div className="mt-4">

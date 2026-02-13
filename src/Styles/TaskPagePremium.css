@@ -48,11 +48,14 @@
 /* Tabs Styling */
 .tabs-list-premium {
     display: flex;
-    gap: 20px;
+    gap: 8px;
     overflow-x: auto;
-    padding-bottom: 8px;
+    padding: 4px;
     margin-bottom: 24px;
     scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
 }
 
 .tabs-list-premium::-webkit-scrollbar {
@@ -64,14 +67,23 @@
     font-size: 14px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.7);
-    padding: 4px 0;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
+    padding: 8px 16px;
+    border-radius: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.tabs-trigger-premium:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .tabs-trigger-premium[data-state="active"] {
-    color: white;
-    border-bottom-color: white;
+    color: #000;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Task Card Styling */
