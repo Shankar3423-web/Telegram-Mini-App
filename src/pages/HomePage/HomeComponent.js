@@ -526,6 +526,7 @@ export default function HomeComponent() {
 
   const [dailyTasksPreview, setDailyTasksPreview] = useState([]);
   const [topNews, setTopNews] = useState(null);
+  const [totalTasksCount, setTotalTasksCount] = useState(0);
 
   // Fetch dynamic news for Top Story
   useEffect(() => {
@@ -585,6 +586,24 @@ export default function HomeComponent() {
 
     return () => unsubTasks();
   }, [user?.id]);
+
+  // Fetch total tasks count for Quick Access
+  useEffect(() => {
+    const tasksRef = ref(database, "tasks");
+    const unsubscribe = onValue(tasksRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        let count = 0;
+        Object.values(data).forEach(categoryTasks => {
+          if (categoryTasks && typeof categoryTasks === 'object') {
+            count += Object.keys(categoryTasks).length;
+          }
+        });
+        setTotalTasksCount(count);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const getTaskIcon = (task) => {
     if (task.type === "news") return <Zap className="h-4 w-4 text-indigo-200" />;
@@ -850,7 +869,7 @@ export default function HomeComponent() {
                   <CardContent className="p-4 flex items-center justify-between ">
                     <div>
                       <h3 className="font-semibold text-white">Tasks</h3>
-                      <p className="text-xs text-white/80">5 available</p>
+                      <p className="text-xs text-white/80">{totalTasksCount} available</p>
                     </div>
                     <div className="bg-white/20 p-2 rounded-full">
                       <CheckSquare className="h-6 w-6 text-white" />
