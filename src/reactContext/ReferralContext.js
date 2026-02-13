@@ -120,9 +120,24 @@ export const ReferralProvider = ({ children }) => {
           referredAt: now
         };
 
-        /* ---- XP Updates ---- */
+        /* ---- XP Updates (Level 1: Direct Referrer) ---- */
         updates[`users/${session.referrerId}/Score/network_score`] = (referrerScore.network_score || 0) + 100;
         updates[`users/${session.referrerId}/Score/total_score`] = (referrerScore.total_score || 0) + 100;
+
+        /* ---- XP Updates (Level 2: Grand-Referrer Commission) ---- */
+        const grandReferrerId = referrerData.referredBy?.id;
+        if (grandReferrerId) {
+          const grandRef = ref(database, `users/${grandReferrerId}`);
+          const grandSnap = await get(grandRef);
+          if (grandSnap.exists()) {
+            const grandData = grandSnap.val();
+            const grandScore = grandData.Score || {};
+            updates[`users/${grandReferrerId}/Score/network_score`] = (grandScore.network_score || 0) + 20;
+            updates[`users/${grandReferrerId}/Score/total_score`] = (grandScore.total_score || 0) + 20;
+          }
+        }
+
+        /* ---- XP Updates (Joiner) ---- */
         updates[`users/${currentUser}/Score/total_score`] = (userScore.total_score || 0) + 50;
 
         /* ---- Mark session used ---- */
