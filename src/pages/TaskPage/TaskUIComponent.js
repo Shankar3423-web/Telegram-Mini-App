@@ -26,7 +26,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState({});
   const [userTasks, setUserTasks] = useState({});
   const [watchCodes, setWatchCodes] = useState({});
-  const [activeTab, setActiveTab] = useState(location.state?.tab || "all");
+  const [activeTab, setActiveTab] = useState(location.state?.tab || "daily");
 
   const userTasksRef = ref(database, `connections/${user.id}/tasks`);
   const userScoreRef = ref(database, `users/${user.id}/Score`);
