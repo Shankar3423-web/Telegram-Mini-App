@@ -157,10 +157,7 @@ export default function NewsComponent() {
   };
 
   const handleReadMore = () => {
-    const currentNews = newsItems[currentNewsIndex];
-    if (currentNews && currentNews.readMoreLink) {
-      window.open(currentNews.readMoreLink, "_blank");
-    }
+    window.open("https://web3today-website.vercel.app/", "_blank");
   };
 
   if (isLoading) {
@@ -274,20 +271,18 @@ export default function NewsComponent() {
                         </p>
 
                         <div className="news-meta-row">
-                          {item.readMoreLink && (
-                            <a
-                              href={item.readMoreLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="news-readmore-link"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleReadMore();
-                              }}
-                            >
-                              Read More →
-                            </a>
-                          )}
+                          <a
+                            href="https://web3today-website.vercel.app/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="news-readmore-link"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleReadMore();
+                            }}
+                          >
+                            Read More →
+                          </a>
                         </div>
 
                         <div className="news-interaction-btns">
